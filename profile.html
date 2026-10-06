@@ -13,19 +13,12 @@
     <meta name="robots" content="noindex, nofollow">
     <meta name="googlebot" content="noindex, nofollow">
     
-    <link rel="canonical" href="https://novahubgadgets.com/profile.html">
+    <link rel="canonical" href="https://novahubgadgets.com/profile">
     
     <link rel="icon" type="image/jpeg" href="assets/images/logo.jpg">
     <link rel="apple-touch-icon" href="assets/images/logo.jpg">
     
     <meta name="theme-color" content="#0A0A0A">
-    
-    <meta property="og:type" content="website">
-    <meta property="og:site_name" content="Novahub">
-    <meta property="og:url" content="https://novahubgadgets.com/profile.html">
-    <meta property="og:title" content="My Profile – Novahub">
-    <meta property="og:description" content="Manage your Novahub account.">
-    <meta property="og:image" content="https://novahubgadgets.com/assets/images/logo.jpg">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -37,14 +30,13 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
-    <link rel="stylesheet" href="assets/css/style.css?v=3">
-    <link rel="stylesheet" href="assets/css/profile.css?v=3">
+    <link rel="stylesheet" href="assets/css/style.css?v=5">
+    <link rel="stylesheet" href="assets/css/profile.css?v=5">
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body>
+<body class="profile-page">
 
-    <!-- ===== HEADER ===== -->
     <header class="sticky-header header-compact">
         <div class="header-left">
             <button class="menu-toggle-btn" onclick="window.location.href='index.html'" aria-label="Back">
@@ -61,7 +53,6 @@
         </div>
     </header>
 
-    <!-- ===== MAIN ===== -->
     <main class="container profile-container" id="profileContainer">
         <div class="loading-state">
             <div class="loading-spinner"></div>
@@ -69,16 +60,123 @@
         </div>
     </main>
 
-    <!-- ===== PHOTO UPLOAD INPUT (Hidden) ===== -->
     <input type="file" id="profilePhotoInput" accept="image/*" class="hidden-file-input">
 
-    <!-- ===== TOAST ===== -->
+    <!-- ============================================================
+         MODAL 1: EDIT NAME
+         ============================================================ -->
+    <div class="edit-modal" id="editNameModal">
+        <div class="edit-modal-content">
+            <div class="edit-modal-header">
+                <h3><i class="fas fa-signature"></i> Edit Name</h3>
+                <button class="edit-modal-close" onclick="closeModal('editNameModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="edit-modal-body">
+                <label for="editNameInput">Your Full Name</label>
+                <input type="text" id="editNameInput" placeholder="Enter your full name" maxlength="60" autocomplete="name">
+                <small class="edit-modal-hint">এই নামটি আপনার অর্ডার ও রিভিউতে দেখানো হবে</small>
+                <small class="edit-modal-error" id="editNameError"></small>
+            </div>
+            <div class="edit-modal-footer">
+                <button class="edit-btn-cancel" onclick="closeModal('editNameModal')">Cancel</button>
+                <button class="edit-btn-save" id="saveNameBtn" onclick="saveNewName()">
+                    <span><i class="fas fa-check"></i> Save</span>
+                    <i class="fas fa-spinner fa-spin" style="display:none;"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         MODAL 2: EDIT PHONE
+         ============================================================ -->
+    <div class="edit-modal" id="editPhoneModal">
+        <div class="edit-modal-content">
+            <div class="edit-modal-header">
+                <h3><i class="fas fa-phone"></i> Edit Phone Number</h3>
+                <button class="edit-modal-close" onclick="closeModal('editPhoneModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="edit-modal-body">
+                <label for="editPhoneInput">Phone Number</label>
+                <input type="tel" id="editPhoneInput" placeholder="01XXXXXXXXX" maxlength="11" inputmode="numeric" autocomplete="tel">
+                <small class="edit-modal-hint">১১ সংখ্যার বাংলাদেশী নম্বর দিন (যেমন: 01712345678)</small>
+                <small class="edit-modal-error" id="editPhoneError"></small>
+            </div>
+            <div class="edit-modal-footer">
+                <button class="edit-btn-cancel" onclick="closeModal('editPhoneModal')">Cancel</button>
+                <button class="edit-btn-save" id="savePhoneBtn" onclick="saveNewPhone()">
+                    <span><i class="fas fa-check"></i> Save</span>
+                    <i class="fas fa-spinner fa-spin" style="display:none;"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         MODAL 3: EDIT LOCATION (Division/District/Upazila/Village)
+         ============================================================ -->
+    <div class="edit-modal edit-modal-large" id="editLocationModal">
+        <div class="edit-modal-content">
+            <div class="edit-modal-header">
+                <h3><i class="fas fa-map-marker-alt"></i> Edit Delivery Address</h3>
+                <button class="edit-modal-close" onclick="closeModal('editLocationModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="edit-modal-body edit-modal-body-scroll">
+                
+                <div class="edit-field">
+                    <label for="editDivision">Division *</label>
+                    <select id="editDivision">
+                        <option value="">Select Division</option>
+                    </select>
+                </div>
+                
+                <div class="edit-field">
+                    <label for="editDistrict">District *</label>
+                    <select id="editDistrict" disabled>
+                        <option value="">Select District</option>
+                    </select>
+                </div>
+                
+                <div class="edit-field">
+                    <label for="editUpazila">Thana / Upazila *</label>
+                    <select id="editUpazila" disabled>
+                        <option value="">Select Upazila</option>
+                    </select>
+                </div>
+                
+                <div class="edit-field">
+                    <label for="editVillage">Village / Area *</label>
+                    <input type="text" id="editVillage" placeholder="Village or Area name" maxlength="80">
+                </div>
+                
+                <div class="edit-field">
+                    <label for="editFullAddress">Full Address <span class="edit-optional">Optional</span></label>
+                    <textarea id="editFullAddress" rows="2" placeholder="House, Road, Landmark" maxlength="200"></textarea>
+                </div>
+                
+                <small class="edit-modal-error" id="editLocationError"></small>
+            </div>
+            <div class="edit-modal-footer">
+                <button class="edit-btn-cancel" onclick="closeModal('editLocationModal')">Cancel</button>
+                <button class="edit-btn-save" id="saveLocationBtn" onclick="saveNewLocation()">
+                    <span><i class="fas fa-check"></i> Save</span>
+                    <i class="fas fa-spinner fa-spin" style="display:none;"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div id="toastContainer" class="toast-container"></div>
 
-    <!-- ===== SCRIPTS ===== -->
-    <script src="assets/js/supabase-config.js?v=3"></script>
-    <script src="assets/js/location-data.js?v=3"></script>
-    <script src="assets/js/auth.js?v=3"></script>
-    <script src="assets/js/profile.js?v=3"></script>
+    <script src="assets/js/supabase-config.js?v=5"></script>
+    <script src="assets/js/auth.js?v=5"></script>
+    <script src="assets/js/location-data.js?v=5"></script>
+    <script src="assets/js/profile.js?v=5"></script>
 </body>
 </html>

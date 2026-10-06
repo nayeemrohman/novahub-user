@@ -1,31 +1,22 @@
 // ============================================================
-// NOVAHUB — Checkout Script (v4)
-// Domain: novahubgadgets.com
-// Features:
-//   ✅ Searchable Dropdown (Division/District/Upazila)
-//   ✅ District → Dhaka হলে Auto Inside
-//   ✅ District → অন্য হলে Auto Outside
-//   ✅ Division-এ auto-select হবে না
-//   ✅ Checkbox-style Delivery Area
-//   ✅ Square review avatars
+// NOVAHUB — Checkout Script (v5 — Fixed)
+// - Parallel stock validation
+// - Fixed currency prefix
+// - Better error handling
 // ============================================================
 
 let checkoutMode = 'cart';
 let checkoutItems = [];
-
-// Dropdown state
 let selectedDivision = '';
 let selectedDistrict = '';
 let selectedUpazila = '';
 
 // ============================================================
-// BACK BUTTONduplicate=======================================================
+// BACK
+// ============================================================
 function goBack() {
-    if (window.history.length > 1) {
-        window.history.back();
-    } else {
-        window.location.href = 'index.html';
-    }
+    if (window.history.length > 1) window.history.back();
+    else window.location.href = 'index.html';
 }
 window.goBack = goBack;
 
@@ -52,7 +43,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     await prefillUserInfo();
     
-    // ✅ Pixel: Track InitiateCheckout
     if (typeof window.trackInitiateCheckout === 'function' && checkoutItems.length > 0) {
         const subtotal = checkoutItems.reduce((s, i) => s + (i.price * i.quantity), 0);
         window.trackInitiateCheckout(checkoutItems, subtotal);
@@ -70,10 +60,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function loadSettings() {
     try {
         const { data } = await supabaseClient
-            .from('settings')
-            .select('*')
-            .eq('id', 1)
-            .single();
+            .from('settings').select('*').eq('id', 1).single();
         
         if (data) {
             window.settings = {
@@ -85,28 +72,10 @@ async function loadSettings() {
                 outsideDhakaCharge: data.outside_dhaka_charge || 120,
                 webhookUrl: data.webhook_url || ''
             };
-        } else {
-            window.settings = {
-                shopName: 'Novahub',
-                currency: '৳',
-                orderPrefix: 'NV',
-                whatsappNumber: '01947939982',
-                insideDhakaCharge: 60,
-                outsideDhakaCharge: 120,
-                webhookUrl: ''
-            };
         }
     } catch (error) {
         console.error('Settings error:', error);
-        window.settings = {
-            shopName: 'Novahub',
-            currency: '৳',
-            orderPrefix: 'NV',
-            whatsappNumber: '01947939982',
-            insideDhakaCharge: 60,
-            outsideDhakaCharge: 120,
-            webhookUrl: ''
-        };
+        window.settings = window.settings || {};
     }
 }
 
@@ -122,10 +91,7 @@ function toggleDropdown(id) {
     
     const isOpen = dropdown.classList.contains('open');
     
-    // Close all other dropdowns
-    document.querySelectorAll('.searchable-dropdown').forEach(d => {
-        d.classList.remove('open');
-    });
+    document.querySelectorAll('.searchable-dropdown').forEach(d => d.classList.remove('open'));
     
     if (!isOpen) {
         dropdown.classList.add('open');
@@ -159,9 +125,16 @@ function renderDropdownList(listId, items, type) {
     }
     
     listEl.innerHTML = items.map(item => {
-        const safeItem = escapeHtml(item);
-        return '<div class="dropdown-item" data-value="' + safeItem + '" onclick="selectDropdownItem(\'' + type + '\', \'' + safeItem.replace(/'/g, "\\'") + '\')">' + safeItem + '</div>';
+        // Use data attributes instead of inline onclick for safety
+        return `<div class="dropdown-item" data-value="${escapeHtml(item)}" data-type="${type}">${escapeHtml(item)}</div>`;
     }).join('');
+    
+    // Attach event listeners
+    listEl.querySelectorAll('.dropdown-item:not(.no-result)').forEach(el => {
+        el.addEventListener('click', () => {
+            selectDropdownItem(el.dataset.type, el.dataset.value);
+        });
+    });
 }
 
 function filterDropdownList(dropdownId, query) {
@@ -218,7 +191,6 @@ function selectDropdownItem(type, value) {
         document.getElementById('divisionSearch').value = value;
         document.getElementById('divisionSearch').readOnly = true;
         
-        // Reset district & upazila
         selectedDistrict = '';
         selectedUpazila = '';
         document.getElementById('district').value = '';
@@ -229,12 +201,8 @@ function selectDropdownItem(type, value) {
         document.getElementById('upazilaSearch').value = '';
         document.getElementById('upazilaSearch').disabled = true;
         
-        // Populate districts
         const districts = Object.keys(LOCATION_DATA.bangladesh.levels[value] || {});
         renderDropdownList('districtList', districts, 'district');
-        
-        // ⚠️ IMPORTANT: NO auto-select on division change
-        // (Delivery area will only be set when district is selected)
         
     } else if (type === 'district') {
         selectedDistrict = value;
@@ -242,18 +210,15 @@ function selectDropdownItem(type, value) {
         document.getElementById('districtSearch').value = value;
         document.getElementById('districtSearch').readOnly = true;
         
-        // Reset upazila
         selectedUpazila = '';
         document.getElementById('upazila').value = '';
         document.getElementById('upazilaSearch').value = '';
         document.getElementById('upazilaSearch').readOnly = true;
         document.getElementById('upazilaSearch').disabled = false;
         
-        // Populate upazilas
         const upazilas = LOCATION_DATA.bangladesh.levels[selectedDivision]?.[value] || [];
         renderDropdownList('upazilaList', upazilas, 'upazila');
         
-        // ✅ AUTO-SELECT DELIVERY AREA (only on district)
         autoSelectDeliveryArea(value);
         
     } else if (type === 'upazila') {
@@ -263,10 +228,8 @@ function selectDropdownItem(type, value) {
         document.getElementById('upazilaSearch').readOnly = true;
     }
     
-    // Close dropdown
     document.querySelectorAll('.searchable-dropdown').forEach(d => d.classList.remove('open'));
     
-    // Clear errors
     const errMap = {
         'division': 'divisionError',
         'district': 'districtError',
@@ -292,18 +255,13 @@ function setupOutsideClickListener() {
 }
 
 // ============================================================
-// AUTO SELECT DELIVERY AREA (District only)
+// AUTO SELECT DELIVERY AREA
 // ============================================================
 function autoSelectDeliveryArea(district) {
     if (!district) return;
     
     const val = String(district).toLowerCase().trim();
-    
-    // Check if district is Dhaka
-    // Handles: "Dhaka (ঢাকা)" or "Dhaka"
-    const isDhakaDistrict = val.includes('dhaka') || 
-                            val.startsWith('dhaka') ||
-                            val.includes('ঢাকা');
+    const isDhakaDistrict = val.includes('dhaka') || val.startsWith('dhaka') || val.includes('ঢাকা');
     
     const insideCheckbox = document.getElementById('deliveryInsideCheckbox');
     const outsideCheckbox = document.getElementById('deliveryOutsideCheckbox');
@@ -315,24 +273,20 @@ function autoSelectDeliveryArea(district) {
         if (outsideCheckbox) outsideCheckbox.checked = false;
         if (insideLabel) insideLabel.classList.add('selected');
         if (outsideLabel) outsideLabel.classList.remove('selected');
-        console.log('✅ District = Dhaka → Auto Inside Dhaka');
     } else {
         if (outsideCheckbox) outsideCheckbox.checked = true;
         if (insideCheckbox) insideCheckbox.checked = false;
         if (outsideLabel) outsideLabel.classList.add('selected');
         if (insideLabel) insideLabel.classList.remove('selected');
-        console.log('✅ District != Dhaka → Auto Outside Dhaka');
     }
     
     updateSummary();
-    
     const errEl = document.getElementById('deliveryAreaError');
     if (errEl) { errEl.textContent = ''; errEl.classList.remove('show'); }
 }
-window.autoSelectDeliveryArea = autoSelectDeliveryArea;
 
 // ============================================================
-// DELIVERY CHARGE SETUP
+// DELIVERY CHARGE
 // ============================================================
 function setupDeliveryCharge() {
     const insideText = document.getElementById('insideChargeText');
@@ -384,8 +338,6 @@ function clearDeliveryError() {
 // PREFILL USER INFO
 // ============================================================
 async function prefillUserInfo() {
-    console.log('🔍 Prefilling user info...');
-    
     const user = await getCurrentUser();
     if (!user) return;
     
@@ -394,10 +346,7 @@ async function prefillUserInfo() {
     
     const googleData = user.user_metadata || {};
     
-    const displayName = profile.full_name 
-        || googleData.full_name 
-        || googleData.name 
-        || null;
+    const displayName = profile.full_name || googleData.full_name || googleData.name || null;
     if (displayName) {
         const el = document.getElementById('fullName');
         if (el) el.value = displayName;
@@ -422,24 +371,38 @@ async function prefillUserInfo() {
         if (el) el.value = profile.full_address;
     }
     
-    // ===== PREFILL LOCATION =====
+    // Prefill location without triggering auto-select
     if (profile.division && LOCATION_DATA.bangladesh.levels[profile.division]) {
-        selectDropdownItem('division', profile.division);
+        selectedDivision = profile.division;
+        document.getElementById('division').value = profile.division;
+        document.getElementById('divisionSearch').value = profile.division;
+        document.getElementById('divisionSearch').readOnly = true;
         
-        await new Promise(r => setTimeout(r, 100));
+        const districts = Object.keys(LOCATION_DATA.bangladesh.levels[profile.division] || {});
+        renderDropdownList('districtList', districts, 'district');
+        document.getElementById('districtSearch').disabled = false;
         
         if (profile.district) {
-            selectDropdownItem('district', profile.district);
+            selectedDistrict = profile.district;
+            document.getElementById('district').value = profile.district;
+            document.getElementById('districtSearch').value = profile.district;
+            document.getElementById('districtSearch').readOnly = true;
             
-            await new Promise(r => setTimeout(r, 100));
+            const upazilas = LOCATION_DATA.bangladesh.levels[profile.division]?.[profile.district] || [];
+            renderDropdownList('upazilaList', upazilas, 'upazila');
+            document.getElementById('upazilaSearch').disabled = false;
             
             if (profile.upazila) {
-                selectDropdownItem('upazila', profile.upazila);
+                selectedUpazila = profile.upazila;
+                document.getElementById('upazila').value = profile.upazila;
+                document.getElementById('upazilaSearch').value = profile.upazila;
+                document.getElementById('upazilaSearch').readOnly = true;
             }
+            
+            // Now auto-select delivery area
+            autoSelectDeliveryArea(profile.district);
         }
     }
-    
-    console.log('✅ Prefill complete');
 }
 
 // ============================================================
@@ -459,10 +422,8 @@ async function buildCheckoutItems() {
             const directProductData = JSON.parse(stored);
             
             const { data: product } = await supabaseClient
-                .from('products')
-                .select('*')
-                .eq('id', directProductData.productId)
-                .single();
+                .from('products').select('*')
+                .eq('id', directProductData.productId).single();
             
             if (product) {
                 checkoutItems = [{
@@ -478,13 +439,8 @@ async function buildCheckoutItems() {
             console.error('Direct checkout error:', error);
         }
     } else {
-        let cart = [];
-        let selectedKeys = [];
-        
-        try {
-            cart = JSON.parse(localStorage.getItem('novahub_cart') || '[]');
-            selectedKeys = JSON.parse(localStorage.getItem('novahub_selected_cart') || '[]');
-        } catch(e) {}
+        const cart = CartModule.getCart();
+        const selectedKeys = CartModule.getSelected();
         
         if (cart.length === 0 || selectedKeys.length === 0) {
             showToast('No items selected for checkout', 'warning');
@@ -497,13 +453,18 @@ async function buildCheckoutItems() {
             return selectedKeys.includes(key);
         });
         
+        // Fetch products in parallel
+        const productIds = selectedItems.map(i => i.productId);
+        if (productIds.length === 0) return;
+        
+        const { data: products } = await supabaseClient
+            .from('products').select('*').in('id', productIds);
+        
+        const productMap = {};
+        (products || []).forEach(p => { productMap[p.id] = p; });
+        
         for (const item of selectedItems) {
-            const { data: product } = await supabaseClient
-                .from('products')
-                .select('*')
-                .eq('id', item.productId)
-                .single();
-            
+            const product = productMap[item.productId];
             if (product) {
                 checkoutItems.push({
                     productId: product.id,
@@ -526,9 +487,7 @@ function renderCheckoutItems() {
     if (!container) return;
     
     if (checkoutItems.length === 0) {
-        container.innerHTML = '<div style="text-align:center;padding:30px 20px;color:#888;">' +
-            '<i class="fas fa-shopping-bag" style="font-size:36px;opacity:0.3;display:block;margin-bottom:12px;"></i>' +
-            '<p>No items found</p></div>';
+        container.innerHTML = '<div style="text-align:center;padding:30px 20px;color:#888;"><i class="fas fa-shopping-bag" style="font-size:36px;opacity:0.3;display:block;margin-bottom:12px;"></i><p>No items found</p></div>';
         return;
     }
     
@@ -565,11 +524,8 @@ function updateSummary() {
     const outsideCheckbox = document.getElementById('deliveryOutsideCheckbox');
     
     let deliveryCharge = 0;
-    if (insideCheckbox?.checked) {
-        deliveryCharge = window.settings.insideDhakaCharge;
-    } else if (outsideCheckbox?.checked) {
-        deliveryCharge = window.settings.outsideDhakaCharge;
-    }
+    if (insideCheckbox?.checked) deliveryCharge = window.settings.insideDhakaCharge;
+    else if (outsideCheckbox?.checked) deliveryCharge = window.settings.outsideDhakaCharge;
     
     const total = subtotal + deliveryCharge;
     
@@ -583,7 +539,7 @@ function updateSummary() {
 }
 
 // ============================================================
-// FORM VALIDATION
+// VALIDATION
 // ============================================================
 function setupFormValidation() {
     document.querySelectorAll('#checkoutForm input, #checkoutForm textarea').forEach(field => {
@@ -664,25 +620,35 @@ function clearErrors() {
 }
 
 // ============================================================
-// STOCK VALIDATION
+// STOCK VALIDATION (PARALLEL — fixed)
 // ============================================================
 async function validateStockBeforeOrder() {
     const outOfStockItems = [];
     
+    if (checkoutItems.length === 0) return outOfStockItems;
+    
+    const productIds = checkoutItems.map(i => i.productId);
+    
+    const { data: products, error } = await supabaseClient
+        .from('products')
+        .select('id, title, stock_status, stock_quantity')
+        .in('id', productIds);
+    
+    if (error || !products) {
+        console.warn('Stock check failed, proceeding anyway');
+        return outOfStockItems;
+    }
+    
+    const productMap = {};
+    products.forEach(p => { productMap[p.id] = p; });
+    
     for (const item of checkoutItems) {
-        try {
-            const { data: product } = await supabaseClient
-                .from('products')
-                .select('id, title, stock_status, stock_quantity')
-                .eq('id', item.productId)
-                .single();
-            
-            if (!product) { outOfStockItems.push(item.title); continue; }
-            if (product.stock_status === 'out_of_stock') { outOfStockItems.push(product.title); continue; }
-            if (product.stock_quantity !== undefined && product.stock_quantity !== null) {
-                if (parseInt(product.stock_quantity) <= 0) { outOfStockItems.push(product.title); }
-            }
-        } catch (err) { console.error('Stock check error:', err); }
+        const product = productMap[item.productId];
+        if (!product) { outOfStockItems.push(item.title); continue; }
+        if (product.stock_status === 'out_of_stock') { outOfStockItems.push(product.title); continue; }
+        if (product.stock_quantity !== undefined && product.stock_quantity !== null) {
+            if (parseInt(product.stock_quantity) <= 0) outOfStockItems.push(product.title);
+        }
     }
     
     return outOfStockItems;
@@ -702,12 +668,14 @@ async function placeOrder(event) {
     if (!validateForm()) return;
     
     const btn = document.getElementById('placeOrderBtn');
+    if (btn.disabled) return;
+    
     const btnText = btn.querySelector('span');
     const btnIcon = btn.querySelector('.fa-check-circle');
     const btnSpinner = btn.querySelector('.fa-spinner');
     
     btn.disabled = true;
-    btnText.textContent = 'Checking stock...';
+    if (btnText) btnText.textContent = 'Checking stock...';
     if (btnIcon) btnIcon.style.display = 'none';
     if (btnSpinner) btnSpinner.style.display = 'inline-block';
     
@@ -715,14 +683,14 @@ async function placeOrder(event) {
     
     if (outOfStock.length > 0) {
         btn.disabled = false;
-        btnText.textContent = 'Confirm Order';
+        if (btnText) btnText.textContent = 'Confirm Order';
         if (btnIcon) btnIcon.style.display = 'inline';
         if (btnSpinner) btnSpinner.style.display = 'none';
         showToast('Out of stock: ' + outOfStock.join(', '), 'error');
         return;
     }
     
-    btnText.textContent = 'Processing...';
+    if (btnText) btnText.textContent = 'Processing...';
     
     try {
         const orderId = generateOrderId();
@@ -767,36 +735,22 @@ async function placeOrder(event) {
         };
         
         const { data, error } = await supabaseClient
-            .from('orders')
-            .insert([orderData])
-            .select()
-            .single();
+            .from('orders').insert([orderData]).select().single();
         
         if (error) throw error;
         
         console.log('✅ Order placed:', data);
         
+        // Fire webhook (non-blocking)
         sendWebhookNotification(orderData).catch(err => console.error('Webhook failed:', err));
         
-        // ✅ Pixel: Track Purchase
         if (typeof window.trackPurchase === 'function') {
             window.trackPurchase(orderId, checkoutItems, total);
         }
         
         // Clear cart
         if (checkoutMode === 'cart') {
-            try {
-                let cart = JSON.parse(localStorage.getItem('novahub_cart') || '[]');
-                let selected = JSON.parse(localStorage.getItem('novahub_selected_cart') || '[]');
-                
-                cart = cart.filter(item => {
-                    const key = generateItemKey(item.productId, item.selectedVariant);
-                    return !selected.includes(key);
-                });
-                
-                localStorage.setItem('novahub_cart', JSON.stringify(cart));
-                localStorage.setItem('novahub_selected_cart', JSON.stringify([]));
-            } catch(e) {}
+            CartModule.clearSelected();
         } else {
             localStorage.removeItem('novahub_direct_checkout');
         }
@@ -810,7 +764,7 @@ async function placeOrder(event) {
         showToast('Failed to place order: ' + error.message, 'error');
     } finally {
         btn.disabled = false;
-        btnText.textContent = 'Confirm Order';
+        if (btnText) btnText.textContent = 'Confirm Order';
         if (btnIcon) btnIcon.style.display = 'inline';
         if (btnSpinner) btnSpinner.style.display = 'none';
     }
@@ -822,16 +776,12 @@ window.placeOrder = placeOrder;
 // ============================================================
 async function sendWebhookNotification(orderData) {
     const webhookUrl = window.settings.webhookUrl;
-    if (!webhookUrl || !webhookUrl.trim()) {
-        console.log('⚠️ Webhook URL not configured.');
-        return;
-    }
+    if (!webhookUrl || !webhookUrl.trim()) return;
     
     const payload = {
         event: 'order.created',
         timestamp: new Date().toISOString(),
         source: 'novahub-website',
-        version: '1.0',
         order_id: orderData.order_id,
         user_id: orderData.user_id || null,
         status: orderData.status || 'pending',
@@ -839,7 +789,7 @@ async function sendWebhookNotification(orderData) {
         customer: {
             full_name: orderData.full_name,
             phone: orderData.phone,
-            email: orderData.email || null,
+            email: orderData.email || null
         },
         shipping_address: {
             division: orderData.division,
@@ -848,8 +798,7 @@ async function sendWebhookNotification(orderData) {
             village: orderData.village,
             full_address: orderData.full_address || null,
             delivery_area: orderData.delivery_area,
-            delivery_area_text: orderData.delivery_area_text,
-            full_address_text: [orderData.village, orderData.upazila, orderData.district, orderData.division].filter(Boolean).join(', '),
+            delivery_area_text: orderData.delivery_area_text
         },
         items: (orderData.items || []).map(item => ({
             product_id: item.productId,
@@ -858,97 +807,53 @@ async function sendWebhookNotification(orderData) {
             quantity: item.quantity,
             unit_price: item.price,
             total_price: item.price * item.quantity,
-            selected_variant: item.selectedVariant || null,
-            variant_text: item.selectedVariant 
-                ? Object.entries(item.selectedVariant).map(([k, v]) => k + ': ' + v).join(', ')
-                : null,
+            selected_variant: item.selectedVariant || null
         })),
-        items_summary: (orderData.items || [])
-            .map(i => {
-                const variantText = i.selectedVariant
-                    ? ' (' + Object.entries(i.selectedVariant).map(([k, v]) => k + ': ' + v).join(', ') + ')'
-                    : '';
-                return i.title + variantText + ' x' + i.quantity;
-            })
-            .join(' | '),
-        total_items: (orderData.items || []).reduce((sum, i) => sum + (i.quantity || 0), 0),
-        total_unique_items: (orderData.items || []).length,
         pricing: {
             subtotal: orderData.subtotal,
             delivery_charge: orderData.delivery_charge,
             total: orderData.total,
-            currency: orderData.currency || 'BDT',
+            currency: orderData.currency || 'BDT'
         },
-        customer_note: orderData.customer_note || null,
-        meta: {
-            user_agent: navigator.userAgent,
-            page_url: window.location.href,
-            referrer: document.referrer || null,
-            language: navigator.language,
-            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-            screen: window.screen.width + 'x' + window.screen.height,
-        },
+        customer_note: orderData.customer_note || null
     };
-    
-    console.log('📤 Webhook payload:', payload);
     
     try {
         const response = await fetch(webhookUrl, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-            },
-            body: JSON.stringify(payload),
-            mode: 'cors',
-            keepalive: true,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
         });
-        
-        if (response.ok) {
-            console.log('✅ Webhook sent. Status:', response.status);
-        } else {
-            console.warn('⚠️ Webhook status:', response.status);
-        }
+        if (response.ok) console.log('✅ Webhook sent');
+        else console.warn('⚠️ Webhook status:', response.status);
     } catch (error) {
         console.error('❌ Webhook error:', error.message);
     }
 }
 
 // ============================================================
-// LOAD REVIEWS PREVIEW (with Customer Avatar)
+// LOAD REVIEWS PREVIEW
 // ============================================================
 async function loadReviewsPreview() {
     const container = document.getElementById('reviewsPreviewContent');
     if (!container) return;
     
     if (checkoutItems.length === 0) {
-        container.innerHTML = '<div class="reviews-loading"><i class="fas fa-comment-slash"></i><p>No items to show reviews</p></div>';
+        container.innerHTML = '<div class="reviews-loading"><i class="fas fa-comment-slash"></i><p>No items</p></div>';
         return;
     }
     
     try {
         const productIds = checkoutItems.map(item => item.productId);
         
-        let { data: reviews, error } = await supabaseClient
-            .from('reviews')
-            .select('*, user_profiles(avatar_url, full_name)')
+        const { data: reviews } = await supabaseClient
+            .from('reviews').select('*')
             .in('product_id', productIds)
             .eq('is_approved', true)
             .order('created_at', { ascending: false });
         
-        if (error) {
-            console.log('Join failed, using simple query');
-            const fallback = await supabaseClient
-                .from('reviews')
-                .select('*')
-                .in('product_id', productIds)
-                .eq('is_approved', true)
-                .order('created_at', { ascending: false });
-            reviews = fallback.data;
-        }
-        
         if (!reviews || reviews.length === 0) {
-            container.innerHTML = '<div class="reviews-loading"><i class="fas fa-star" style="color:#DDD;"></i><p>No reviews yet for these products</p></div>';
+            container.innerHTML = '<div class="reviews-loading"><i class="fas fa-star" style="color:#DDD;"></i><p>No reviews yet</p></div>';
             return;
         }
         
@@ -970,14 +875,11 @@ async function loadReviewsPreview() {
         }
         
     } catch (error) {
-        console.error('Error loading reviews preview:', error);
-        container.innerHTML = '<div class="reviews-loading"><i class="fas fa-exclamation-triangle"></i><p>Unable to load reviews</p></div>';
+        console.error('Reviews preview error:', error);
+        container.innerHTML = '<div class="reviews-loading"><i class="fas fa-exclamation-triangle"></i><p>Unable to load</p></div>';
     }
 }
 
-// ============================================================
-// RENDER CHECKOUT REVIEW (with Customer Avatar)
-// ============================================================
 function renderCheckoutReviewSquare(r) {
     let starsHTML = '';
     for (let i = 1; i <= 5; i++) {
@@ -990,13 +892,10 @@ function renderCheckoutReviewSquare(r) {
         ? new Date(r.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
         : '';
     
-    const reviewerName = r.reviewer_name || r.user_profiles?.full_name || 'User';
+    const reviewerName = r.reviewer_name || 'User';
     const initials = reviewerName.charAt(0).toUpperCase();
     const image = r.image_url_1 || null;
-    
-    const avatar = r.reviewer_avatar 
-        || r.user_profiles?.avatar_url 
-        || null;
+    const avatar = r.reviewer_avatar || null;
     
     const comment = r.comment && r.comment.trim() 
         ? escapeHtml(r.comment) 
@@ -1004,10 +903,7 @@ function renderCheckoutReviewSquare(r) {
     
     let avatarHTML;
     if (avatar) {
-        avatarHTML = '<div class="review-square-avatar has-image">' +
-            '<img src="' + escapeHtml(avatar) + '" alt="' + escapeHtml(reviewerName) + '" loading="lazy" ' +
-            'onerror="this.parentElement.classList.remove(\'has-image\');this.parentElement.textContent=\'' + escapeHtml(initials) + '\';">' +
-        '</div>';
+        avatarHTML = '<div class="review-square-avatar has-image"><img src="' + escapeHtml(avatar) + '" alt="' + escapeHtml(reviewerName) + '" loading="lazy" onerror="this.parentElement.classList.remove(\'has-image\');this.parentElement.textContent=\'' + escapeHtml(initials) + '\';"></div>';
     } else {
         avatarHTML = '<div class="review-square-avatar">' + escapeHtml(initials) + '</div>';
     }
@@ -1031,26 +927,16 @@ function renderCheckoutReviewSquare(r) {
 // ============================================================
 function openLightbox(imageUrl) {
     let lightbox = document.getElementById('imageLightbox');
-    
     if (!lightbox) {
         lightbox = document.createElement('div');
         lightbox.id = 'imageLightbox';
         lightbox.className = 'image-lightbox';
-        lightbox.innerHTML = '<button class="lightbox-close" onclick="closeLightbox()" aria-label="Close"><i class="fas fa-times"></i></button>' +
-            '<img id="lightboxImage" class="lightbox-image" src="" alt="Preview" onclick="event.stopPropagation();">';
+        lightbox.innerHTML = '<button class="lightbox-close" onclick="closeLightbox()" aria-label="Close"><i class="fas fa-times"></i></button><img id="lightboxImage" class="lightbox-image" src="" alt="Preview" onclick="event.stopPropagation();">';
         document.body.appendChild(lightbox);
-        
-        lightbox.addEventListener('click', (e) => {
-            if (e.target === lightbox) closeLightbox();
-        });
-        
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && lightbox.classList.contains('active')) closeLightbox();
-        });
+        lightbox.addEventListener('click', (e) => { if (e.target === lightbox) closeLightbox(); });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeLightbox(); });
     }
-    
-    const img = document.getElementById('lightboxImage');
-    img.src = imageUrl;
+    document.getElementById('lightboxImage').src = imageUrl;
     lightbox.classList.add('active');
     document.body.style.overflow = 'hidden';
 }
@@ -1067,7 +953,7 @@ window.closeLightbox = closeLightbox;
 function setupLightbox() {}
 
 // ============================================================
-// COPY ORDER ID
+// COPY ORDER ID / CONTINUE
 // ============================================================
 function copyOrderId() {
     const orderId = document.getElementById('thankYouOrderId').textContent;
@@ -1088,17 +974,14 @@ function fallbackCopy(text) {
     ta.style.opacity = '0';
     document.body.appendChild(ta);
     ta.select();
-    document.execCommand('copy');
+    try { document.execCommand('copy'); showToast('Order ID copied!', 'success'); }
+    catch(e) { showToast('Copy failed', 'error'); }
     document.body.removeChild(ta);
-    showToast('Order ID copied!', 'success');
 }
 
-// ============================================================
-// CONTINUE SHOPPING
-// ============================================================
 function continueShopping() {
     window.location.href = 'index.html';
 }
 window.continueShopping = continueShopping;
 
-console.log('✅ Checkout script loaded (v4 — District-only Auto Delivery)');
+console.log('✅ Checkout script loaded (v5)');

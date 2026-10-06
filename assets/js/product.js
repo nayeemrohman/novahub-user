@@ -1,7 +1,6 @@
 // ============================================================
-// NOVAHUB — Product Page Script (v4 — Full SEO)
-// Domain: novahubgadgets.com
-// Read-only storefront — all write ops handled by admin backend
+// NOVAHUB — Product Page Script (v5)
+// Fixed: Uses CartModule, prevents double-click, safer SEO
 // ============================================================
 
 let product = null;
@@ -12,6 +11,8 @@ let selectedRating = 0;
 let reviewImage = null;
 let allReviews = [];
 let relatedProducts = [];
+let isAddingToCart = false;
+let isBuyingNow = false;
 
 // ==================== HEADER ACTIONS ====================
 async function handleProfileClick() {
@@ -21,31 +22,19 @@ async function handleProfileClick() {
 }
 window.handleProfileClick = handleProfileClick;
 
-function openCartFromProduct() {
-    window.location.href = 'index.html?openCart=1';
-}
-window.openCartFromProduct = openCartFromProduct;
-
 async function updateHeaderProfile() {
     const profileIcon = document.getElementById('headerProfileIcon');
     if (!profileIcon) return;
     try {
-        let user = null;
-        for (let i = 0; i < 5; i++) {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            if (session?.user) { user = session.user; break; }
-            await new Promise(r => setTimeout(r, 300));
-        }
+        const user = await getCurrentUser();
         if (!user) { profileIcon.className = 'fas fa-user'; return; }
         
-        const { data: profile } = await supabaseClient
-            .from('user_profiles').select('avatar_url, full_name').eq('id', user.id).single();
-        
+        const profile = await getUserProfile(user.id);
         const g = user.user_metadata || {};
         const photoUrl = profile?.avatar_url || g.avatar_url || g.picture || null;
         
         if (photoUrl) {
-            profileIcon.parentElement.innerHTML = '<img src="' + photoUrl + '" alt="Profile" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;" onerror="this.outerHTML=\'<i class=&quot;fas fa-user-circle&quot; id=&quot;headerProfileIcon&quot;></i>\'">';
+            profileIcon.parentElement.innerHTML = '<img src="' + escapeHtml(photoUrl) + '" alt="Profile" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;" onerror="this.outerHTML=\'<i class=&quot;fas fa-user-circle&quot; id=&quot;headerProfileIcon&quot;></i>\'">';
         } else {
             profileIcon.className = 'fas fa-user-circle';
         }
@@ -53,13 +42,6 @@ async function updateHeaderProfile() {
         console.error('updateHeaderProfile error:', err);
     }
 }
-window.updateHeaderProfile = updateHeaderProfile;
-
-function goBack() {
-    if (window.history.length > 1) window.history.back();
-    else window.location.href = 'index.html';
-}
-window.goBack = goBack;
 
 // ==================== INIT ====================
 document.addEventListener('DOMContentLoaded', async () => {
@@ -75,7 +57,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     await loadSettings();
-    await loadCartCount();
     await updateAuthUI();
     updateHeaderProfile();
     await loadProduct(productId);
@@ -83,17 +64,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     console.log('✅ Product page ready');
 });
-
-// ==================== LOAD CART COUNT ====================
-async function loadCartCount() {
-    try {
-        const saved = localStorage.getItem('novahub_cart');
-        const cart = saved ? JSON.parse(saved) : [];
-        const total = cart.reduce((sum, item) => sum + (item.quantity || 0), 0);
-        const el = document.getElementById('cartCount');
-        if (el) el.textContent = total;
-    } catch(e) {}
-}
 
 // ==================== LOAD SETTINGS ====================
 async function loadSettings() {
@@ -144,13 +114,12 @@ async function loadProduct(productId) {
         currentImageIndex = 0;
         
         renderProduct();
-        await loadReviews();          // Load reviews FIRST for schema
-        updateSEO();                  // Then update SEO with review data
+        await loadReviews();
+        updateSEO();
         updateBreadcrumb();
-        await setupReviewForm();
+        setupReviewForm();
         await loadRelatedProducts();
         
-        // ✅ Pixel: Track ViewContent
         if (typeof window.trackViewContent === 'function') {
             window.trackViewContent(product);
         }
@@ -162,7 +131,7 @@ async function loadProduct(productId) {
 }
 
 // ============================================================
-// SEO UPDATE (Full — Updates all meta tags + schemas)
+// SEO UPDATE
 // ============================================================
 function updateSEO() {
     const price = safeParseNumber(product.price);
@@ -177,43 +146,30 @@ function updateSEO() {
     
     const pageTitle = product.title + ' – ৳' + price + ' | Novahub Bangladesh';
     
-    // ===== 1. Title =====
     document.title = pageTitle;
-    setMetaById('name', 'title', pageTitle, false);
     
-    // ===== 2. Meta Description =====
+    setMeta('name', 'title', pageTitle);
     setMeta('name', 'description', shortDesc);
     
-    // ===== 3. Canonical =====
     const canonical = document.getElementById('canonicalLink');
     if (canonical) canonical.href = productUrl;
     
-    // ===== 4. Open Graph =====
-    setMetaById('property', 'og:url', productUrl);
-    setMetaById('property', 'og:title', pageTitle);
-    setMetaById('property', 'og:description', shortDesc);
-    setMetaById('property', 'og:image', productImage);
+    setMetaById('og:url', productUrl);
+    setMetaById('og:title', pageTitle);
+    setMetaById('og:description', shortDesc);
+    setMetaById('og:image', productImage);
     
-    // OG Image dimensions
-    const ogImgWidth = document.querySelector('meta[property="og:image:width"]');
-    const ogImgHeight = document.querySelector('meta[property="og:image:height"]');
-    if (ogImgWidth) ogImgWidth.setAttribute('content', '1200');
-    if (ogImgHeight) ogImgHeight.setAttribute('content', '1200');
+    setMetaById('twitter:url', productUrl);
+    setMetaById('twitter:title', pageTitle);
+    setMetaById('twitter:description', shortDesc);
+    setMetaById('twitter:image', productImage);
+    setMetaById('twitter:data1', '৳' + price);
+    setMetaById('twitter:data2', inStock ? 'In Stock' : 'Out of Stock');
     
-    // ===== 5. Twitter =====
-    setMetaById('name', 'twitter:url', productUrl);
-    setMetaById('name', 'twitter:title', pageTitle);
-    setMetaById('name', 'twitter:description', shortDesc);
-    setMetaById('name', 'twitter:image', productImage);
-    setMetaById('name', 'twitter:data1', '৳' + price);
-    setMetaById('name', 'twitter:data2', inStock ? 'In Stock' : 'Out of Stock');
+    setMetaById('whatsapp:title', pageTitle);
+    setMetaById('whatsapp:description', shortDesc);
+    setMetaById('whatsapp:image', productImage);
     
-    // ===== 6. WhatsApp =====
-    setMetaById('property', 'whatsapp:title', pageTitle);
-    setMetaById('property', 'whatsapp:description', shortDesc);
-    setMetaById('property', 'whatsapp:image', productImage);
-    
-    // ===== 7. Product Schema =====
     const schema = {
         "@context": "https://schema.org",
         "@type": "Product",
@@ -239,17 +195,6 @@ function updateSEO() {
         }
     };
     
-    // Add old price as discount hint
-    if (oldPrice > price) {
-        schema.offers.priceSpecification = {
-            "@type": "PriceSpecification",
-            "price": price,
-            "priceCurrency": "BDT",
-            "valueAddedTaxIncluded": true
-        };
-    }
-    
-    // Add aggregate rating
     if (allReviews.length > 0) {
         const avgRating = allReviews.reduce((s, r) => s + r.rating, 0) / allReviews.length;
         schema.aggregateRating = {
@@ -260,7 +205,6 @@ function updateSEO() {
             "worstRating": 1
         };
         
-        // Add top 3 reviews
         schema.review = allReviews.slice(0, 3).map(r => ({
             "@type": "Review",
             "author": { "@type": "Person", "name": r.reviewer_name || 'Customer' },
@@ -276,12 +220,9 @@ function updateSEO() {
     }
     
     const schemaTag = document.getElementById('productSchema');
-    if (schemaTag) {
-        schemaTag.textContent = JSON.stringify(schema, null, 2);
-    }
+    if (schemaTag) schemaTag.textContent = JSON.stringify(schema, null, 2);
     
-    // ===== 8. Breadcrumb Schema =====
-    const breadcrumbSchema = {
+    const bcSchema = {
         "@context": "https://schema.org",
         "@type": "BreadcrumbList",
         "itemListElement": [
@@ -290,19 +231,13 @@ function updateSEO() {
         ]
     };
     
-    const bcSchemaTag = document.getElementById('breadcrumbSchema');
-    if (bcSchemaTag) {
-        bcSchemaTag.textContent = JSON.stringify(breadcrumbSchema, null, 2);
-    }
+    const bcTag = document.getElementById('breadcrumbSchema');
+    if (bcTag) bcTag.textContent = JSON.stringify(bcSchema, null, 2);
     
-    // ===== 9. OG Type =====
     const ogType = document.getElementById('ogType');
     if (ogType) ogType.setAttribute('content', 'product');
-    
-    console.log('✅ SEO updated for:', product.title);
 }
 
-// Helper: set meta by name/property (creates if not exists)
 function setMeta(attr, name, content) {
     let tag = document.querySelector('meta[' + attr + '="' + name + '"]');
     if (!tag) {
@@ -313,11 +248,7 @@ function setMeta(attr, name, content) {
     tag.setAttribute('content', content);
 }
 
-// Helper: set meta by ID (updates existing with id)
-function setMetaById(attr, name, content, useId) {
-    if (useId === undefined) useId = true;
-    
-    // Try by id first (derive id from name)
+function setMetaById(name, content) {
     const idMap = {
         'og:url': 'ogUrl',
         'og:title': 'ogTitle',
@@ -334,19 +265,14 @@ function setMetaById(attr, name, content, useId) {
         'whatsapp:image': 'waImage'
     };
     
-    if (useId && idMap[name]) {
-        const tag = document.getElementById(idMap[name]);
-        if (tag) {
-            tag.setAttribute('content', content);
-            return;
-        }
+    const elId = idMap[name];
+    if (elId) {
+        const tag = document.getElementById(elId);
+        if (tag) { tag.setAttribute('content', content); return; }
     }
-    
-    // Fallback: by attribute selector
-    setMeta(attr, name, content);
 }
 
-// ==================== BREADCRUMB (HTML) ====================
+// ==================== BREADCRUMB ====================
 function updateBreadcrumb() {
     const nav = document.getElementById('breadcrumbNav');
     const list = document.getElementById('breadcrumbList');
@@ -375,7 +301,7 @@ function renderProduct() {
         ? productImages.map((img, i) => 
             '<img src="' + escapeHtml(img) + '" alt="' + escapeHtml(product.title) + ' - View ' + (i+1) + '" ' +
             'class="product-thumbnail ' + (i === 0 ? 'active' : '') + '" ' +
-            'onclick="changeProductImage(' + i + ')" loading="lazy" ' +
+            'data-index="' + i + '" loading="lazy" ' +
             'onerror="this.src=\'https://via.placeholder.com/70\'">'
         ).join('')
         : '';
@@ -400,8 +326,7 @@ function renderProduct() {
                     v.options.map(opt => 
                         '<button type="button" class="variant-option" ' +
                         'data-name="' + escapeHtml(v.name) + '" ' +
-                        'data-value="' + escapeHtml(opt) + '" ' +
-                        'onclick="selectVariant(this)">' + escapeHtml(opt) + '</button>'
+                        'data-value="' + escapeHtml(opt) + '">' + escapeHtml(opt) + '</button>'
                     ).join('') +
                 '</div>' +
             '</div>';
@@ -416,12 +341,12 @@ function renderProduct() {
     container.innerHTML = 
         '<div class="product-details">' +
             '<div class="product-images-section">' +
-                '<div class="main-image-container" onclick="openLightbox(productImages[currentImageIndex])">' +
+                '<div class="main-image-container" id="mainImageWrap">' +
                     '<img src="' + escapeHtml(mainImage) + '" alt="' + escapeHtml(product.title) + '" ' +
                     'class="main-product-image" id="mainProductImage" ' +
                     'onerror="this.src=\'https://via.placeholder.com/600\'">' +
                 '</div>' +
-                (thumbnailsHTML ? '<div class="thumbnail-container">' + thumbnailsHTML + '</div>' : '') +
+                (thumbnailsHTML ? '<div class="thumbnail-container" id="thumbnailContainer">' + thumbnailsHTML + '</div>' : '') +
             '</div>' +
             '<div class="product-details-info">' +
                 '<h1 class="product-details-title">' + escapeHtml(product.title) + '</h1>' +
@@ -444,13 +369,44 @@ function renderProduct() {
                     '<div class="description-content">' + description + '</div>' +
                 '</div>' +
                 '<div class="product-details-actions">' +
-                    '<button class="btn add-to-cart" onclick="handleAddToCart()" ' + (isOutOfStock ? 'disabled' : '') + '>' +
+                    '<button class="btn add-to-cart" id="addToCartBtn" ' + (isOutOfStock ? 'disabled' : '') + '>' +
                         '<i class="fas fa-cart-plus"></i> Add to Cart</button>' +
-                    '<button class="btn buy-now" onclick="handleBuyNow()" ' + (isOutOfStock ? 'disabled' : '') + '>' +
+                    '<button class="btn buy-now" id="buyNowBtn" ' + (isOutOfStock ? 'disabled' : '') + '>' +
                         '<i class="fas fa-bolt"></i> Buy Now</button>' +
                 '</div>' +
             '</div>' +
         '</div>';
+    
+    // Attach event listeners (safer than inline onclick)
+    const mainImgWrap = document.getElementById('mainImageWrap');
+    if (mainImgWrap) {
+        mainImgWrap.addEventListener('click', () => {
+            openLightbox(productImages[currentImageIndex]);
+        });
+    }
+    
+    const thumbContainer = document.getElementById('thumbnailContainer');
+    if (thumbContainer) {
+        thumbContainer.querySelectorAll('.product-thumbnail').forEach(el => {
+            el.addEventListener('click', () => {
+                changeProductImage(parseInt(el.dataset.index));
+            });
+        });
+    }
+    
+    // Variant buttons
+    container.querySelectorAll('.variant-option').forEach(el => {
+        el.addEventListener('click', () => {
+            selectVariant(el);
+        });
+    });
+    
+    // Action buttons
+    const addBtn = document.getElementById('addToCartBtn');
+    if (addBtn) addBtn.addEventListener('click', handleAddToCart);
+    
+    const buyBtn = document.getElementById('buyNowBtn');
+    if (buyBtn) buyBtn.addEventListener('click', handleBuyNow);
     
     if (hasVariants) {
         updateAddToCartButtonState();
@@ -524,55 +480,34 @@ function updateVariantSummary() {
         '<span class="variant-summary-item"><strong>' + escapeHtml(key) + ':</strong> ' + escapeHtml(val) + '</span>'
     ).join(' <span class="variant-summary-sep">•</span> ');
 }
-window.updateVariantSummary = updateVariantSummary;
 
-
-// ============================================================
-// UPDATE BUTTON STATE — Don't disable, add visual hint only
-// ============================================================
 function updateAddToCartButtonState() {
     if (!product.enable_variants || !product.variants || product.variants.length === 0) return;
     
     const allSelected = product.variants.every(v => selectedVariants[v.name]);
-    const addBtn = document.querySelector('.product-details-actions .add-to-cart');
-    const buyBtn = document.querySelector('.product-details-actions .buy-now');
+    const addBtn = document.getElementById('addToCartBtn');
+    const buyBtn = document.getElementById('buyNowBtn');
     
-    if (addBtn) {
-        if (allSelected) addBtn.classList.remove('needs-variant');
-        else addBtn.classList.add('needs-variant');
-    }
-    
-    if (buyBtn) {
-        if (allSelected) buyBtn.classList.remove('needs-variant');
-        else buyBtn.classList.add('needs-variant');
-    }
+    if (addBtn) addBtn.classList.toggle('needs-variant', !allSelected);
+    if (buyBtn) buyBtn.classList.toggle('needs-variant', !allSelected);
 }
 
-// ============================================================
-// SCROLL TO VARIANTS — Smooth scroll + highlight animation
-// ============================================================
 function scrollToVariants() {
     const variantSection = document.querySelector('.product-variants');
     if (!variantSection) return;
     
-    variantSection.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center'
-    });
-    
+    variantSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
     variantSection.classList.add('highlight-variants');
-    setTimeout(() => {
-        variantSection.classList.remove('highlight-variants');
-    }, 2000);
-    
-    console.log('📍 Scrolled to variants');
+    setTimeout(() => variantSection.classList.remove('highlight-variants'), 2000);
 }
 window.scrollToVariants = scrollToVariants;
 
 // ============================================================
-// ADD TO CART (v2 — scroll to variants if not selected)
+// ADD TO CART (with double-click prevention)
 // ============================================================
 function handleAddToCart() {
+    if (isAddingToCart) return;
+    
     if (product.enable_variants && product.variants && product.variants.length > 0) {
         const allSelected = product.variants.every(v => selectedVariants[v.name]);
         if (!allSelected) {
@@ -582,45 +517,40 @@ function handleAddToCart() {
         }
     }
     
+    isAddingToCart = true;
+    const btn = document.getElementById('addToCartBtn');
+    if (btn) btn.disabled = true;
+    
     try {
-        let cart = JSON.parse(localStorage.getItem('novahub_cart') || '[]');
         const variant = Object.keys(selectedVariants).length > 0 ? selectedVariants : null;
+        const result = CartModule.addToCart(product, 1, variant);
         
-        const existingIdx = cart.findIndex(item => 
-            item.productId === product.id && areVariantsEqual(item.selectedVariant, variant)
-        );
-        
-        if (existingIdx >= 0) {
-            cart[existingIdx].quantity += 1;
+        if (result.success) {
+            CartModule.renderCartUI();
+            showToast(product.title + ' added to cart', 'success');
+        } else if (result.error === 'out_of_stock') {
+            showToast('Product out of stock', 'error');
         } else {
-            cart.push({
-                productId: product.id,
-                title: product.title,
-                price: safeParseNumber(product.price),
-                imageURL: product.image_url,
-                quantity: 1,
-                selectedVariant: variant
-            });
-        }
-        
-        localStorage.setItem('novahub_cart', JSON.stringify(cart));
-        loadCartCount();
-        showToast(product.title + ' added to cart', 'success');
-        
-        if (typeof window.trackAddToCart === 'function') {
-            window.trackAddToCart(product, 1);
+            showToast('Failed to add to cart', 'error');
         }
     } catch (error) {
         console.error('Add to cart error:', error);
         showToast('Failed to add to cart', 'error');
+    } finally {
+        setTimeout(() => {
+            isAddingToCart = false;
+            if (btn && product.stock_status !== 'out_of_stock') btn.disabled = false;
+        }, 500);
     }
 }
 window.handleAddToCart = handleAddToCart;
 
 // ============================================================
-// BUY NOW (v2 — scroll to variants if not selected)
+// BUY NOW (with double-click prevention)
 // ============================================================
 function handleBuyNow() {
+    if (isBuyingNow) return;
+    
     if (product.enable_variants && product.variants && product.variants.length > 0) {
         const allSelected = product.variants.every(v => selectedVariants[v.name]);
         if (!allSelected) {
@@ -629,6 +559,10 @@ function handleBuyNow() {
             return;
         }
     }
+    
+    isBuyingNow = true;
+    const btn = document.getElementById('buyNowBtn');
+    if (btn) btn.disabled = true;
     
     try {
         const variant = Object.keys(selectedVariants).length > 0 ? selectedVariants : null;
@@ -645,9 +579,10 @@ function handleBuyNow() {
         localStorage.setItem('novahub_direct_checkout', JSON.stringify(directItem));
         window.location.href = 'checkout.html?mode=direct';
     } catch (error) {
-
         console.error('Buy now error:', error);
         showToast('Failed to proceed', 'error');
+        isBuyingNow = false;
+        if (btn) btn.disabled = false;
     }
 }
 window.handleBuyNow = handleBuyNow;
@@ -656,8 +591,7 @@ window.handleBuyNow = handleBuyNow;
 async function loadReviews() {
     try {
         const { data, error } = await supabaseClient
-            .from('reviews')
-            .select('*')
+            .from('reviews').select('*')
             .eq('product_id', product.id)
             .eq('is_approved', true)
             .order('created_at', { ascending: false });
@@ -709,7 +643,6 @@ function renderReviews() {
     if (allReviews.length === 0) {
         trackEl.innerHTML = '<div class="no-reviews"><i class="fas fa-comment-slash"></i><p>No reviews yet. Be the first to review!</p></div>';
         trackEl.style.animation = 'none';
-        trackEl.style.width = '100%';
         return;
     }
     
@@ -737,13 +670,21 @@ function renderReviewSquare(r) {
     const reviewerName = r.reviewer_name || 'User';
     const initials = reviewerName.charAt(0).toUpperCase();
     const image = r.image_url_1 || null;
+    const avatar = r.reviewer_avatar || null;
     const comment = r.comment && r.comment.trim() 
         ? escapeHtml(r.comment) 
         : '<span style="color:#AAA;font-style:italic;">No comment</span>';
     
+    let avatarHTML;
+    if (avatar) {
+        avatarHTML = '<div class="review-square-avatar has-image"><img src="' + escapeHtml(avatar) + '" alt="' + escapeHtml(reviewerName) + '" loading="lazy" onerror="this.parentElement.classList.remove(\'has-image\');this.parentElement.textContent=\'' + escapeHtml(initials) + '\';"></div>';
+    } else {
+        avatarHTML = '<div class="review-square-avatar">' + escapeHtml(initials) + '</div>';
+    }
+    
     return '<div class="review-square-card">' +
         '<div class="review-square-header">' +
-            '<div class="review-square-avatar">' + escapeHtml(initials) + '</div>' +
+            avatarHTML +
             '<div class="review-square-user">' +
                 '<div class="review-square-name">' + escapeHtml(reviewerName) + '</div>' +
                 '<div class="review-square-date">' + date + '</div>' +
@@ -759,13 +700,13 @@ function renderReviewSquare(r) {
 async function loadRelatedProducts() {
     try {
         const { data, error } = await supabaseClient
-            .from('products')
-            .select('*')
+            .from('products').select('*')
             .eq('is_active', true)
             .neq('id', product.id);
         
         if (error || !data || data.length === 0) {
-            document.getElementById('relatedSection').style.display = 'none';
+            const section = document.getElementById('relatedSection');
+            if (section) section.style.display = 'none';
             return;
         }
         
@@ -811,7 +752,7 @@ async function loadRelatedProducts() {
     }
 }
 
-// ==================== SETUP REVIEW FORM ====================
+// ==================== REVIEW FORM ====================
 async function setupReviewForm() {
     const user = await getCurrentUser();
     const writeBtn = document.getElementById('writeReviewBtn');
@@ -828,7 +769,6 @@ async function setupReviewForm() {
     }
 }
 
-// ==================== STAR RATING ====================
 function setupStarRating() {
     const stars = document.querySelectorAll('#starRating i');
     const ratingText = document.getElementById('ratingText');
@@ -851,7 +791,6 @@ function setupStarRating() {
     });
 }
 
-// ==================== IMAGE UPLOAD ====================
 function setupImageUpload() {
     const input = document.getElementById('reviewImage1');
     if (input) input.addEventListener('change', handleImageSelect);
@@ -898,7 +837,6 @@ function removeImage(event) {
 }
 window.removeImage = removeImage;
 
-// ==================== IMAGE COMPRESS ====================
 function compressImage(file, maxSize) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -987,8 +925,8 @@ async function submitReview() {
     const btnSpinner = btn.querySelector('.fa-spinner');
     
     btn.disabled = true;
-    btnText.style.display = 'none';
-    btnSpinner.style.display = 'inline-block';
+    if (btnText) btnText.style.display = 'none';
+    if (btnSpinner) btnSpinner.style.display = 'inline-block';
     
     try {
         showToast('Uploading review...', 'info');
@@ -1012,12 +950,18 @@ async function submitReview() {
             || googleData.name 
             || user.email.split('@')[0];
         
+        const reviewerAvatar = profile?.avatar_url 
+            || googleData.avatar_url 
+            || googleData.picture 
+            || null;
+        
         const { error } = await supabaseClient
             .from('reviews')
             .insert([{
                 product_id: product.id,
                 user_id: user.id,
                 reviewer_name: reviewerName,
+                reviewer_avatar: reviewerAvatar,
                 rating: selectedRating,
                 comment: comment || null,
                 image_url_1: imageUrl,
@@ -1047,13 +991,13 @@ async function submitReview() {
         closeReviewModal();
     } catch (error) {
         console.error('Submit review error:', error);
-        showToast('Failed to submit review: ' + error.message, 'error');
+        showToast('Failed to submit: ' + error.message, 'error');
     } finally {
         btn.disabled = false;
-        btnText.style.display = 'inline-flex';
-        btnSpinner.style.display = 'none';
+        if (btnText) btnText.style.display = 'inline-flex';
+        if (btnSpinner) btnSpinner.style.display = 'none';
     }
 }
 window.submitReview = submitReview;
 
-console.log('✅ Product page loaded (v4 — Full SEO)');
+console.log('✅ Product page loaded (v5 — CartModule integrated)');

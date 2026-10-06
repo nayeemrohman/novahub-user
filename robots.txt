@@ -1,5 +1,5 @@
 # ============================================================
-# NOVAHUB — robots.txt (v2 FIXED)
+# NOVAHUB — robots.txt (v3)
 # Domain: https://novahubgadgets.com
 # ============================================================
 

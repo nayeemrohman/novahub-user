@@ -5,9 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     
-    <!-- ==================== SEO ==================== -->
     <title>Checkout – Novahub | Secure Order Placement Bangladesh</title>
-    <meta name="description" content="Complete your order at Novahub securely. Fast delivery across Bangladesh. Cash on Delivery available. Order premium gadget accessories now.">
+    <meta name="description" content="Complete your order at Novahub securely. Fast delivery across Bangladesh. Cash on Delivery available.">
     <meta name="author" content="Novahub">
     
     <meta name="robots" content="noindex, nofollow">
@@ -20,41 +19,33 @@
     
     <meta name="theme-color" content="#0A0A0A">
     
-    <!-- ==================== PRECONNECT ==================== -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="dns-prefetch" href="https://oxnfiueqmvggtjtciqbn.supabase.co">
     
-    <!-- ==================== STYLES ==================== -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
-    <link rel="stylesheet" href="assets/css/style.css?v=3">
-    <link rel="stylesheet" href="assets/css/checkout.css?v=3">
+    <link rel="stylesheet" href="assets/css/style.css?v=4">
+    <link rel="stylesheet" href="assets/css/checkout.css?v=4">
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="checkout-page">
 
-    <!-- ==================== MINIMAL TOP BAR ==================== -->
     <div class="checkout-topbar">
         <button class="checkout-back-btn" onclick="goBack()" aria-label="Back">
             <i class="fas fa-arrow-left"></i>
         </button>
-        <div class="checkout-brand">
-            NOVA<span class="brand-red">HUB</span>
-        </div>
+        <div class="checkout-brand">NOVA<span class="brand-red">HUB</span></div>
         <div class="checkout-topbar-spacer"></div>
     </div>
 
-    <!-- ==================== MAIN ==================== -->
     <main class="container checkout-container">
-        
         <div class="checkout-wrapper">
             
-            <!-- ==================== ORDER ITEMS ==================== -->
             <div class="checkout-card">
                 <h2 class="checkout-card-title">
                     <i class="fas fa-shopping-bag"></i> Order Items
@@ -67,17 +58,9 @@
                             <div class="skeleton" style="height:12px;width:40%;"></div>
                         </div>
                     </div>
-                    <div class="checkout-item-skeleton">
-                        <div class="skeleton" style="width:60px;height:60px;border-radius:10px;"></div>
-                        <div style="flex:1;">
-                            <div class="skeleton" style="height:14px;width:70%;margin-bottom:8px;"></div>
-                            <div class="skeleton" style="height:12px;width:40%;"></div>
-                        </div>
-                    </div>
                 </div>
             </div>
             
-            <!-- ==================== SHIPPING INFO ==================== -->
             <div class="checkout-card">
                 <h2 class="checkout-card-title">
                     <i class="fas fa-map-marker-alt"></i> Shipping Information
@@ -85,7 +68,6 @@
                 
                 <form id="checkoutForm" onsubmit="event.preventDefault(); placeOrder(event)" autocomplete="off">
                     
-                    <!-- FULL NAME + PHONE -->
                     <div class="form-row">
                         <div class="form-field">
                             <label for="fullName">Full Name *</label>
@@ -100,13 +82,11 @@
                         </div>
                     </div>
                     
-                    <!-- EMAIL -->
                     <div class="form-field">
                         <label for="email">Email (Optional)</label>
                         <input type="email" id="email" placeholder="আপনার ইমেইল এড্রেস (অপশনাল)" autocomplete="email">
                     </div>
                     
-                    <!-- ==================== DIVISION (SEARCHABLE) ==================== -->
                     <div class="form-field">
                         <label for="divisionSearch">Division *</label>
                         <div class="searchable-dropdown" id="divisionDropdown">
@@ -128,10 +108,7 @@
                         <small class="field-error" id="divisionError"></small>
                     </div>
                     
-                    <!-- DISTRICT + UPAZILA -->
                     <div class="form-row">
-                        
-                        <!-- ==================== DISTRICT (SEARCHABLE) ==================== -->
                         <div class="form-field">
                             <label for="districtSearch">District *</label>
                             <div class="searchable-dropdown" id="districtDropdown">
@@ -154,7 +131,6 @@
                             <small class="field-error" id="districtError"></small>
                         </div>
                         
-                        <!-- ==================== UPAZILA (SEARCHABLE) ==================== -->
                         <div class="form-field">
                             <label for="upazilaSearch">Thana / Upazila</label>
                             <div class="searchable-dropdown" id="upazilaDropdown">
@@ -178,20 +154,17 @@
                         </div>
                     </div>
                     
-                    <!-- VILLAGE / AREA -->
                     <div class="form-field">
                         <label for="village">Village / Area *</label>
                         <input type="text" id="village" placeholder="গ্রাম বা এলাকার নাম" required>
                         <small class="field-error" id="villageError"></small>
                     </div>
                     
-                    <!-- FULL ADDRESS -->
                     <div class="form-field">
                         <label for="fullAddress">Full Address (House / Road)</label>
                         <textarea id="fullAddress" rows="2" placeholder="বাসা, রোড, ল্যান্ডমার্ক" autocomplete="street-address"></textarea>
                     </div>
                     
-                    <!-- ==================== DELIVERY AREA ==================== -->
                     <div class="delivery-section">
                         <label>Delivery Area *</label>
                         <div class="delivery-options">
@@ -222,7 +195,6 @@
                         <small class="field-error" id="deliveryAreaError"></small>
                     </div>
                     
-                    <!-- CUSTOMER NOTE -->
                     <div class="form-field">
                         <label for="customerNote">Order Notes (Optional)</label>
                         <textarea id="customerNote" rows="2" placeholder="কোনো বিশেষ নির্দেশনা থাকলে লিখুন"></textarea>
@@ -231,7 +203,6 @@
                 </form>
             </div>
             
-            <!-- ==================== ORDER SUMMARY ==================== -->
             <div class="checkout-card summary-card">
                 <h2 class="checkout-card-title">
                     <i class="fas fa-receipt"></i> Order Summary
@@ -263,7 +234,6 @@
                 </p>
             </div>
             
-            <!-- ==================== REVIEWS PREVIEW ==================== -->
             <div class="checkout-card reviews-preview-card" id="reviewsPreviewCard">
                 <div class="reviews-header-top-checkout">
                     <h2 class="checkout-card-title" style="margin:0;border:none;padding:0;">
@@ -279,10 +249,8 @@
             </div>
             
         </div>
-        
     </main>
 
-    <!-- ==================== THANK YOU MODAL ==================== -->
     <div class="thank-you-modal" id="thankYouModal">
         <div class="thank-you-content">
             <div class="thank-you-icon">
@@ -306,13 +274,12 @@
         </div>
     </div>
 
-    <!-- ==================== TOAST ==================== -->
     <div id="toastContainer" class="toast-container"></div>
 
-    <!-- ==================== SCRIPTS ==================== -->
-    <script src="assets/js/supabase-config.js?v=3"></script>
-    <script src="assets/js/location-data.js?v=3"></script>
-    <script src="assets/js/auth.js?v=3"></script>
-    <script src="assets/js/checkout.js?v=3"></script>
+    <script src="assets/js/supabase-config.js?v=4"></script>
+    <script src="assets/js/auth.js?v=4"></script>
+    <script src="assets/js/cart-shared.js?v=4"></script>
+    <script src="assets/js/location-data.js?v=4"></script>
+    <script src="assets/js/checkout.js?v=4"></script>
 </body>
 </html>

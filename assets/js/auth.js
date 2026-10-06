@@ -1,7 +1,7 @@
 // ============================================================
-// NOVAHUB — Authentication + SEO Injector Helper (v3)
+// NOVAHUB — Authentication + SEO Injector Helper (v4)
 // Domain: novahubgadgets.com
-// Used by: ALL pages (index, product, checkout, profile, static, ...)
+// Used by: ALL pages
 // ============================================================
 
 // ============================================================
@@ -14,6 +14,11 @@ async function logoutUser() {
         
         window.currentUser = null;
         window.currentProfile = null;
+        
+        // Clear cart selection on logout
+        try {
+            localStorage.removeItem('novahub_selected_cart');
+        } catch(e) {}
         
         return { success: true };
     } catch (error) {
@@ -57,75 +62,84 @@ async function updateUserProfile(userId, updates) {
 }
 
 // ============================================================
-// UPDATE AUTH UI (Sidebar Profile — WITH PHOTO)
+// UPDATE AUTH UI (Sidebar Profile)
 // ============================================================
 async function updateAuthUI() {
-    await syncGoogleProfileData();
-    const user = await getCurrentUser();
-    
-    const guestView = document.getElementById('guestView');
-    const userView = document.getElementById('userView');
-    const menuLoginBtn = document.getElementById('menuLoginBtn');
-    const menuProfileBtn = document.getElementById('menuProfileBtn');
-    const menuLogoutBtn = document.getElementById('menuLogoutBtn');
-    const menuUserName = document.getElementById('menuUserName');
-    const menuUserEmail = document.getElementById('menuUserEmail');
-    const userAvatarMenu = document.getElementById('userAvatarMenu');
-    
-    if (user) {
-        const profile = await getUserProfile(user.id);
-        const googleData = user.user_metadata || {};
+    try {
+        await syncGoogleProfileData();
+        const user = await getCurrentUser();
         
-        if (guestView) guestView.style.display = 'none';
-        if (userView) userView.style.display = 'flex';
-        if (menuLoginBtn) menuLoginBtn.style.display = 'none';
-        if (menuProfileBtn) menuProfileBtn.style.display = 'flex';
-        if (menuLogoutBtn) menuLogoutBtn.style.display = 'flex';
+        const guestView = document.getElementById('guestView');
+        const userView = document.getElementById('userView');
+        const menuLoginBtn = document.getElementById('menuLoginBtn');
+        const menuProfileBtn = document.getElementById('menuProfileBtn');
+        const menuLogoutBtn = document.getElementById('menuLogoutBtn');
+        const menuUserName = document.getElementById('menuUserName');
+        const menuUserEmail = document.getElementById('menuUserEmail');
+        const userAvatarMenu = document.getElementById('userAvatarMenu');
         
-        const displayName = profile?.full_name 
-            || googleData.full_name 
-            || googleData.name 
-            || user.email.split('@')[0];
-        
-        if (menuUserName) menuUserName.textContent = displayName;
-        if (menuUserEmail) menuUserEmail.textContent = user.email;
-        
-        const photoUrl = profile?.avatar_url 
-            || googleData.avatar_url 
-            || googleData.picture 
-            || null;
-        
-        if (userAvatarMenu) {
-            if (photoUrl) {
-                userAvatarMenu.innerHTML = '<img src="' + escapeHtml(photoUrl) + '" alt="' + escapeHtml(displayName) + '" onerror="this.outerHTML=\'<i class=&quot;fas fa-user-circle&quot;></i>\'">';
-            } else {
-                const initial = displayName.charAt(0).toUpperCase();
-                userAvatarMenu.innerHTML = '<span>' + escapeHtml(initial) + '</span>';
+        if (user) {
+            const profile = await getUserProfile(user.id);
+            const googleData = user.user_metadata || {};
+            
+            if (guestView) guestView.style.display = 'none';
+            if (userView) userView.style.display = 'flex';
+            if (menuLoginBtn) menuLoginBtn.style.display = 'none';
+            if (menuProfileBtn) menuProfileBtn.style.display = 'flex';
+            if (menuLogoutBtn) menuLogoutBtn.style.display = 'flex';
+            
+            const displayName = profile?.full_name 
+                || googleData.full_name 
+                || googleData.name 
+                || user.email.split('@')[0];
+            
+            if (menuUserName) menuUserName.textContent = displayName;
+            if (menuUserEmail) menuUserEmail.textContent = user.email;
+            
+            const photoUrl = profile?.avatar_url 
+                || googleData.avatar_url 
+                || googleData.picture 
+                || null;
+            
+            if (userAvatarMenu) {
+                if (photoUrl) {
+                    userAvatarMenu.innerHTML = '<img src="' + escapeHtml(photoUrl) + '" alt="' + escapeHtml(displayName) + '" onerror="this.outerHTML=\'<i class=&quot;fas fa-user-circle&quot;></i>\'">';
+                } else {
+                    const initial = displayName.charAt(0).toUpperCase();
+                    userAvatarMenu.innerHTML = '<span>' + escapeHtml(initial) + '</span>';
+                }
+            }
+        } else {
+            if (guestView) guestView.style.display = 'flex';
+            if (userView) userView.style.display = 'none';
+            if (menuLoginBtn) menuLoginBtn.style.display = 'flex';
+            if (menuProfileBtn) menuProfileBtn.style.display = 'none';
+            if (menuLogoutBtn) menuLogoutBtn.style.display = 'none';
+            
+            if (userAvatarMenu) {
+                userAvatarMenu.innerHTML = '<i class="fas fa-user-circle"></i>';
             }
         }
-    } else {
-        if (guestView) guestView.style.display = 'flex';
-        if (userView) userView.style.display = 'none';
-        if (menuLoginBtn) menuLoginBtn.style.display = 'flex';
-        if (menuProfileBtn) menuProfileBtn.style.display = 'none';
-        if (menuLogoutBtn) menuLogoutBtn.style.display = 'none';
-        
-        if (userAvatarMenu) {
-            userAvatarMenu.innerHTML = '<i class="fas fa-user-circle"></i>';
-        }
+    } catch (err) {
+        console.error('updateAuthUI error:', err);
     }
 }
 
 // ============================================================
 // AUTH STATE LISTENER
 // ============================================================
-supabaseClient.auth.onAuthStateChange((event, session) => {
-    console.log('Auth state changed:', event);
-    updateAuthUI();
-});
+try {
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+        console.log('Auth state changed:', event);
+        // Delay to allow DOM to settle
+        setTimeout(() => updateAuthUI(), 100);
+    });
+} catch (err) {
+    console.error('Auth state listener error:', err);
+}
 
 // ============================================================
-// SYNC GOOGLE PROFILE DATA (avatar + name from Google)
+// SYNC GOOGLE PROFILE DATA
 // ============================================================
 async function syncGoogleProfileData() {
     try {
@@ -190,7 +204,6 @@ async function loadAndInjectSEO() {
             meta.name = 'google-site-verification';
             meta.content = settings.google_verification.trim();
             document.head.appendChild(meta);
-            console.log('✅ Google verification meta injected');
         }
         
         if (settings.facebook_verification && settings.facebook_verification.trim()) {
@@ -198,7 +211,6 @@ async function loadAndInjectSEO() {
             meta.name = 'facebook-domain-verification';
             meta.content = settings.facebook_verification.trim();
             document.head.appendChild(meta);
-            console.log('✅ Facebook verification meta injected');
         }
         
         if (settings.bing_verification && settings.bing_verification.trim()) {
@@ -206,7 +218,6 @@ async function loadAndInjectSEO() {
             meta.name = 'msvalidate.01';
             meta.content = settings.bing_verification.trim();
             document.head.appendChild(meta);
-            console.log('✅ Bing verification meta injected');
         }
         
         if (settings.google_analytics_id && settings.google_analytics_id.trim()) {
@@ -226,7 +237,6 @@ async function loadAndInjectSEO() {
                 document.head.appendChild(script2);
                 
                 window.__gaId = gaId;
-                console.log('✅ Google Analytics loaded:', gaId);
             }
         }
         
@@ -258,9 +268,9 @@ async function loadAndInjectSEO() {
             
             window.__pixelId = pixelId;
             window.__pixelEnabled = true;
-            console.log('✅ Meta Pixel loaded:', pixelId);
         }
         
+        console.log('✅ SEO injection complete');
     } catch (err) {
         console.error('❌ SEO inject error:', err);
     }
@@ -342,4 +352,4 @@ window.updateAuthUI = updateAuthUI;
 window.syncGoogleProfileData = syncGoogleProfileData;
 window.loadAndInjectSEO = loadAndInjectSEO;
 
-console.log('✅ Auth + SEO Injector loaded (v3)');
+console.log('✅ Auth + SEO Injector loaded (v4)');

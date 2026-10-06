@@ -1,5 +1,13 @@
 // ============================================================
-// NOVAHUB — Profile Page Script (Google + Photo Upload)
+// NOVAHUB — Profile Page Script (v7 — Professional Redesign)
+// Features:
+//   ✅ Edit Name (Modal)
+//   ✅ Edit Phone (Modal with validation)
+//   ✅ Edit Location (Modal with Division→District→Upazila cascade)
+//   ✅ Photo Upload to Cloudinary
+//   ✅ Live DOM updates
+//   ✅ Orders with modern empty state
+//   ✅ Card-style headers with icons
 // ============================================================
 
 // ==================== CLOUDINARY CONFIG ====================
@@ -12,8 +20,8 @@ const CLOUDINARY_CONFIG = {
 };
 
 // ==================== GLOBAL ====================
-let user = null;
-let profile = null;
+let currentUser = null;
+let currentProfile = null;
 let userOrders = [];
 let activeTab = 'info';
 let isUploading = false;
@@ -26,19 +34,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     await loadSettings();
     
-    user = await getCurrentUser();
-    if (!user) {
+    currentUser = await getCurrentUser();
+    if (!currentUser) {
         showToast('Please login first', 'warning');
         setTimeout(() => window.location.href = 'auth.html', 1000);
         return;
     }
     
-    console.log('✅ User:', user.email);
+    console.log('✅ User:', currentUser.email);
     
     await loadProfile();
     await loadOrders();
     renderProfile();
     setupPhotoUpload();
+    setupAllModals();
+    setupLocationDropdowns();
+    setupPhoneInput();
     
     console.log('✅ Profile page ready');
 });
@@ -49,10 +60,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function loadSettings() {
     try {
         const { data } = await supabaseClient
-            .from('settings')
-            .select('*')
-            .eq('id', 1)
-            .single();
+            .from('settings').select('*').eq('id', 1).single();
         
         if (data) {
             window.settings = {
@@ -71,65 +79,55 @@ async function loadSettings() {
 async function loadProfile() {
     try {
         const { data, error } = await supabaseClient
-            .from('user_profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single();
+            .from('user_profiles').select('*')
+            .eq('id', currentUser.id).single();
         
         if (error && error.code === 'PGRST116') {
-            // Create new profile if not exists
-            const googleData = user.user_metadata || {};
+            const googleData = currentUser.user_metadata || {};
             
             const newProfile = {
-                id: user.id,
+                id: currentUser.id,
                 full_name: googleData.full_name || googleData.name || null,
-                email: user.email,
+                email: currentUser.email,
                 avatar_url: googleData.avatar_url || googleData.picture || null,
                 role: 'user',
                 provider: 'google'
             };
             
             const { data: created } = await supabaseClient
-                .from('user_profiles')
-                .insert([newProfile])
-                .select()
-                .single();
+                .from('user_profiles').insert([newProfile]).select().single();
             
-            profile = created || newProfile;
+            currentProfile = created || newProfile;
         } else if (data) {
-            profile = data;
+            currentProfile = data;
             
-            // Auto-fill name + photo from Google if missing
-            const googleData = user.user_metadata || {};
-            let needsUpdate = false;
+            const googleData = currentUser.user_metadata || {};
             const updates = {};
+            let needsUpdate = false;
             
-            if (!profile.full_name && (googleData.full_name || googleData.name)) {
+            if (!currentProfile.full_name && (googleData.full_name || googleData.name)) {
                 updates.full_name = googleData.full_name || googleData.name;
                 needsUpdate = true;
             }
             
-            if (!profile.avatar_url && (googleData.avatar_url || googleData.picture)) {
+            if (!currentProfile.avatar_url && (googleData.avatar_url || googleData.picture)) {
                 updates.avatar_url = googleData.avatar_url || googleData.picture;
                 needsUpdate = true;
             }
             
             if (needsUpdate) {
                 await supabaseClient
-                    .from('user_profiles')
-                    .update(updates)
-                    .eq('id', user.id);
-                
-                profile = { ...profile, ...updates };
-                console.log('✅ Google data synced');
+                    .from('user_profiles').update(updates)
+                    .eq('id', currentUser.id);
+                currentProfile = { ...currentProfile, ...updates };
             }
         }
     } catch (error) {
         console.error('Load profile error:', error);
-        profile = {
-            id: user.id,
-            full_name: user.user_metadata?.full_name || null,
-            avatar_url: user.user_metadata?.avatar_url || null,
+        currentProfile = {
+            id: currentUser.id,
+            full_name: currentUser.user_metadata?.full_name || null,
+            avatar_url: currentUser.user_metadata?.avatar_url || null,
             phone: '', division: '', district: '',
             upazila: '', village: '', full_address: ''
         };
@@ -142,11 +140,10 @@ async function loadProfile() {
 async function loadOrders() {
     try {
         const { data, error } = await supabaseClient
-            .from('orders')
-            .select('*')
-            .eq('user_id', user.id)
+            .from('orders').select('*')
+            .eq('user_id', currentUser.id)
             .order('created_at', { ascending: false })
-            .limit(20);
+            .limit(50);
         
         if (error) throw error;
         userOrders = data || [];
@@ -157,57 +154,74 @@ async function loadOrders() {
 }
 
 // ============================================================
+// HELPERS
+// ============================================================
+function getDisplayName() {
+    const googleData = currentUser.user_metadata || {};
+    return currentProfile?.full_name 
+        || googleData.full_name 
+        || googleData.name 
+        || currentUser.email.split('@')[0];
+}
+
+function getDisplayPhoto() {
+    const googleData = currentUser.user_metadata || {};
+    return currentProfile?.avatar_url 
+        || googleData.avatar_url 
+        || googleData.picture 
+        || null;
+}
+
+function getAddressText() {
+    const parts = [
+        currentProfile?.village,
+        currentProfile?.upazila,
+        currentProfile?.district,
+        currentProfile?.division
+    ].filter(Boolean);
+    return parts.length > 0 ? parts.join(', ') : 'Not set';
+}
+
+// ============================================================
 // RENDER PROFILE
 // ============================================================
 function renderProfile() {
     const container = document.getElementById('profileContainer');
     if (!container) return;
     
-    const googleData = user.user_metadata || {};
-    
-    // Name: profile > google > email
-    const displayName = profile?.full_name 
-        || googleData.full_name 
-        || googleData.name 
-        || user.email.split('@')[0];
-    
+    const displayName = getDisplayName();
     const initials = displayName.charAt(0).toUpperCase();
+    const photoUrl = getDisplayPhoto();
     
-    // Photo: profile > google
-    const photoUrl = profile?.avatar_url 
-        || googleData.avatar_url 
-        || googleData.picture 
-        || null;
-    
-    // Avatar HTML
     const avatarHTML = photoUrl 
         ? `<img src="${escapeHtml(photoUrl)}" alt="${escapeHtml(displayName)}" class="profile-avatar-img" id="profileAvatarImg" onerror="this.outerHTML='<div class=\\'profile-avatar-letter\\' id=\\'profileAvatarLetter\\'>${escapeHtml(initials)}</div>'">`
         : `<div class="profile-avatar-letter" id="profileAvatarLetter">${escapeHtml(initials)}</div>`;
     
     container.innerHTML = `
         <div class="profile-header-card">
+            <div class="profile-header-pattern"></div>
             <div class="profile-avatar-wrap">
                 ${avatarHTML}
-                ${profile?.provider === 'google' || googleData.avatar_url ? `
+                ${currentProfile?.provider === 'google' || currentUser.user_metadata?.avatar_url ? `
                     <div class="profile-google-badge"><i class="fab fa-google"></i></div>
                 ` : ''}
                 <button type="button" class="profile-photo-btn" id="profilePhotoBtn" onclick="triggerPhotoUpload()" title="Change photo">
                     <i class="fas fa-camera" id="profilePhotoIcon"></i>
                 </button>
             </div>
-            <div class="profile-name">${escapeHtml(displayName)}</div>
-            <div class="profile-email">${escapeHtml(user.email)}</div>
+            <div class="profile-name" id="profileNameDisplay">${escapeHtml(displayName)}</div>
+            <div class="profile-email">${escapeHtml(currentUser.email)}</div>
         </div>
         
         <div class="profile-tabs">
             <button class="profile-tab active" data-tab="info" onclick="switchTab('info')">
-                <i class="fas fa-user"></i> Info
+                <i class="fas fa-user"></i> <span>Info</span>
             </button>
             <button class="profile-tab" data-tab="orders" onclick="switchTab('orders')">
-                <i class="fas fa-shopping-bag"></i> Orders
+                <i class="fas fa-shopping-bag"></i> <span>Orders</span>
             </button>
-            <button class="profile-tab" data-tab="edit" onclick="switchTab('edit')">
-                <i class="fas fa-edit"></i> Edit
+            <button class="profile-tab" data-tab="settings" onclick="switchTab('settings')">
+                <i class="fas fa-cog"></i> <span>Settings</span>
             </button>
         </div>
         
@@ -227,7 +241,6 @@ function switchTab(tab) {
     });
     renderTab(tab);
 }
-
 window.switchTab = switchTab;
 
 function renderTab(tab) {
@@ -236,64 +249,98 @@ function renderTab(tab) {
     
     if (tab === 'info') renderInfoTab(container);
     else if (tab === 'orders') renderOrdersTab(container);
-    else if (tab === 'edit') renderEditTab(container);
+    else if (tab === 'settings') renderSettingsTab(container);
 }
 
 // ============================================================
 // INFO TAB
 // ============================================================
 function renderInfoTab(container) {
-    const googleData = user.user_metadata || {};
-    
-    const address = [
-        profile.village, profile.upazila, profile.district, profile.division
-    ].filter(Boolean).join(', ') || 'Not set';
-    
-    const displayName = profile.full_name 
-        || googleData.full_name 
-        || googleData.name 
-        || 'Not set';
+    const displayName = getDisplayName();
+    const address = getAddressText();
     
     container.innerHTML = `
         <div class="profile-card">
-            <h3><i class="fas fa-user-circle"></i> Personal Information</h3>
-            <div class="info-row">
-                <span class="label">Full Name</span>
-                <span class="value">${escapeHtml(displayName)}</span>
+            <div class="profile-card-header">
+                <div class="profile-card-header-icon">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+                <h3>Personal Information</h3>
             </div>
-            <div class="info-row">
-                <span class="label">Email</span>
-                <span class="value">${escapeHtml(user.email)}</span>
+            
+            <div class="info-row" id="infoRowName">
+                <div class="info-row-icon"><i class="fas fa-signature"></i></div>
+                <div class="info-row-content">
+                    <div class="info-row-label">Full Name</div>
+                    <div class="info-row-value">${escapeHtml(displayName)}</div>
+                </div>
             </div>
+            
             <div class="info-row">
-                <span class="label">Phone</span>
-                <span class="value">${escapeHtml(profile.phone || 'Not set')}</span>
+                <div class="info-row-icon"><i class="fas fa-envelope"></i></div>
+                <div class="info-row-content">
+                    <div class="info-row-label">Email</div>
+                    <div class="info-row-value">${escapeHtml(currentUser.email)}</div>
+                </div>
             </div>
-            <div class="info-row">
-                <span class="label">Address</span>
-                <span class="value">${escapeHtml(address)}</span>
+            
+            <div class="info-row" id="infoRowPhone">
+                <div class="info-row-icon"><i class="fas fa-phone"></i></div>
+                <div class="info-row-content">
+                    <div class="info-row-label">Phone</div>
+                    <div class="info-row-value">${escapeHtml(currentProfile.phone || 'Not set')}</div>
+                </div>
             </div>
-            ${profile.full_address ? `
-                <div class="info-row">
-                    <span class="label">Full Address</span>
-                    <span class="value">${escapeHtml(profile.full_address)}</span>
+            
+            <div class="info-row" id="infoRowAddress">
+                <div class="info-row-icon"><i class="fas fa-map-marker-alt"></i></div>
+                <div class="info-row-content">
+                    <div class="info-row-label">Delivery Address</div>
+                    <div class="info-row-value">${escapeHtml(address)}</div>
+                </div>
+            </div>
+            
+            ${currentProfile.full_address ? `
+                <div class="info-row" id="infoRowFullAddress">
+                    <div class="info-row-icon"><i class="fas fa-home"></i></div>
+                    <div class="info-row-content">
+                        <div class="info-row-label">Full Address</div>
+                        <div class="info-row-value">${escapeHtml(currentProfile.full_address)}</div>
+                    </div>
                 </div>
             ` : ''}
         </div>
         
         <div class="profile-card">
-            <h3><i class="fas fa-chart-line"></i> Account Stats</h3>
-            <div class="info-row">
-                <span class="label">Total Orders</span>
-                <span class="value">${userOrders.length}</span>
+            <div class="profile-card-header">
+                <div class="profile-card-header-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h3>Account Stats</h3>
             </div>
+            
             <div class="info-row">
-                <span class="label">Delivered</span>
-                <span class="value">${userOrders.filter(o => o.status === 'delivered').length}</span>
+                <div class="info-row-icon"><i class="fas fa-box"></i></div>
+                <div class="info-row-content">
+                    <div class="info-row-label">Total Orders</div>
+                    <div class="info-row-value">${userOrders.length}</div>
+                </div>
             </div>
+            
             <div class="info-row">
-                <span class="label">Pending</span>
-                <span class="value">${userOrders.filter(o => o.status === 'pending').length}</span>
+                <div class="info-row-icon"><i class="fas fa-check-circle"></i></div>
+                <div class="info-row-content">
+                    <div class="info-row-label">Delivered</div>
+                    <div class="info-row-value">${userOrders.filter(o => o.status === 'delivered').length}</div>
+                </div>
+            </div>
+            
+            <div class="info-row">
+                <div class="info-row-icon"><i class="fas fa-clock"></i></div>
+                <div class="info-row-content">
+                    <div class="info-row-label">Pending</div>
+                    <div class="info-row-value">${userOrders.filter(o => o.status === 'pending').length}</div>
+                </div>
             </div>
         </div>
         
@@ -310,12 +357,15 @@ function renderOrdersTab(container) {
     if (userOrders.length === 0) {
         container.innerHTML = `
             <div class="profile-card">
-                <div class="empty-state">
-                    <i class="fas fa-shopping-bag"></i>
+                <div class="empty-orders-state">
+                    <div class="empty-orders-icon">
+                        <i class="fas fa-shopping-bag"></i>
+                    </div>
                     <h3>No Orders Yet</h3>
-                    <p style="color:var(--text-muted);font-size:13px;margin-bottom:16px;">Start shopping to see your orders here</p>
-                    <a href="index.html" style="display:inline-block;padding:12px 24px;background:var(--red);color:white;border-radius:50px;font-weight:700;text-decoration:none;font-size:13px;text-transform:uppercase;letter-spacing:1px;">
-                        <i class="fas fa-shopping-cart"></i> Shop Now
+                    <p>You haven't placed any orders yet. Start shopping to see them here!</p>
+                    <a href="index.html" class="empty-orders-btn">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span>Start Shopping</span>
                     </a>
                 </div>
             </div>
@@ -325,139 +375,413 @@ function renderOrdersTab(container) {
     
     container.innerHTML = `
         <div class="profile-card">
-            <h3><i class="fas fa-shopping-bag"></i> Recent Orders (${userOrders.length})</h3>
-            ${userOrders.map(order => {
-                const date = order.created_at 
-                    ? new Date(order.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-                    : '';
-                
-                return `
-                    <div class="order-list-item" onclick="window.location.href='order-track.html?id=${order.order_id}'">
-                        <div class="order-item-header">
-                            <span class="order-list-id">${escapeHtml(order.order_id)}</span>
-                            <span class="order-list-status ${order.status}">${order.status}</span>
+            <div class="profile-card-header">
+                <div class="profile-card-header-icon">
+                    <i class="fas fa-shopping-bag"></i>
+                </div>
+                <h3>My Orders (${userOrders.length})</h3>
+            </div>
+            
+            <div style="padding-top: 4px;">
+                ${userOrders.map(order => {
+                    const date = order.created_at 
+                        ? new Date(order.created_at).toLocaleDateString('en-GB', { 
+                            day: '2-digit', month: 'short', year: 'numeric' 
+                        })
+                        : '';
+                    
+                    const itemCount = Array.isArray(order.items) 
+                        ? order.items.reduce((s, i) => s + (i.quantity || 0), 0) 
+                        : 0;
+                    
+                    return `
+                        <div class="order-list-item" onclick="window.location.href='order-track.html'">
+                            <div class="order-item-header">
+                                <span class="order-list-id">${escapeHtml(order.order_id)}</span>
+                                <span class="order-list-status ${order.status}">${order.status}</span>
+                            </div>
+                            <div class="order-item-meta">
+                                <span><i class="far fa-calendar"></i> ${date}</span>
+                                <span><i class="fas fa-box"></i> ${itemCount} item${itemCount !== 1 ? 's' : ''}</span>
+                                <span class="order-item-total">${formatPrice(order.total)}</span>
+                            </div>
                         </div>
-                        <div class="order-item-meta">
-                            <span>📅 ${date}</span>
-                            <span><strong>${formatPrice(order.total)}</strong></span>
-                        </div>
-                    </div>
-                `;
-            }).join('')}
+                    `;
+                }).join('')}
+            </div>
         </div>
     `;
 }
 
 // ============================================================
-// EDIT TAB
+// SETTINGS TAB
 // ============================================================
-function renderEditTab(container) {
-    const googleData = user.user_metadata || {};
-    
-    const displayName = profile.full_name 
-        || googleData.full_name 
-        || googleData.name 
-        || '';
+function renderSettingsTab(container) {
+    const displayName = getDisplayName();
+    const address = getAddressText();
     
     container.innerHTML = `
         <div class="profile-card">
-            <h3><i class="fas fa-edit"></i> Edit Profile</h3>
+            <div class="profile-card-header">
+                <div class="profile-card-header-icon">
+                    <i class="fas fa-cog"></i>
+                </div>
+                <h3>Account Settings</h3>
+            </div>
             
-            <form class="profile-form" onsubmit="event.preventDefault(); saveProfile(event)">
-                
-                <div class="form-field">
-                    <label>
-                        <i class="fas fa-user"></i> Full Name
-                        <span class="readonly-tag">From Google</span>
-                    </label>
-                    <input type="text" id="editName" value="${escapeHtml(displayName)}" readonly>
+            <!-- NAME -->
+            <div class="setting-row" onclick="openEditNameModal()">
+                <div class="setting-info">
+                    <div class="setting-icon"><i class="fas fa-signature"></i></div>
+                    <div>
+                        <div class="setting-label">Display Name</div>
+                        <div class="setting-value" id="settingsNameValue">${escapeHtml(displayName)}</div>
+                    </div>
                 </div>
-                
-                <div class="form-field">
-                    <label>
-                        <i class="fas fa-envelope"></i> Email
-                        <span class="readonly-tag">From Google</span>
-                    </label>
-                    <input type="email" id="editEmail" value="${escapeHtml(user.email)}" readonly>
+                <i class="fas fa-chevron-right setting-arrow"></i>
+            </div>
+            
+            <!-- EMAIL (Read-only) -->
+            <div class="setting-row readonly">
+                <div class="setting-info">
+                    <div class="setting-icon"><i class="fas fa-envelope"></i></div>
+                    <div>
+                        <div class="setting-label">Email <span class="setting-tag">Google</span></div>
+                        <div class="setting-value">${escapeHtml(currentUser.email)}</div>
+                    </div>
                 </div>
-                
-                <div class="form-field">
-                    <label><i class="fas fa-phone"></i> Phone Number</label>
-                    <input type="tel" id="editPhone" value="${escapeHtml(profile.phone || '')}" placeholder="01XXXXXXXXX" maxlength="11">
+                <i class="fas fa-lock setting-lock"></i>
+            </div>
+            
+            <!-- PHONE -->
+            <div class="setting-row" onclick="openEditPhoneModal()">
+                <div class="setting-info">
+                    <div class="setting-icon"><i class="fas fa-phone"></i></div>
+                    <div>
+                        <div class="setting-label">Phone Number</div>
+                        <div class="setting-value" id="settingsPhoneValue">${escapeHtml(currentProfile.phone || 'Not set — tap to add')}</div>
+                    </div>
                 </div>
-                
-                <div class="form-field">
-                    <label><i class="fas fa-map"></i> Division</label>
-                    <select id="editDivision"><option value="">Select Division</option></select>
+                <i class="fas fa-chevron-right setting-arrow"></i>
+            </div>
+            
+            <!-- ADDRESS -->
+            <div class="setting-row" onclick="openEditLocationModal()">
+                <div class="setting-info">
+                    <div class="setting-icon"><i class="fas fa-map-marker-alt"></i></div>
+                    <div>
+                        <div class="setting-label">Delivery Address</div>
+                        <div class="setting-value" id="settingsAddressValue">${escapeHtml(address)}</div>
+                    </div>
                 </div>
-                
-                <div class="form-field">
-                    <label><i class="fas fa-city"></i> District</label>
-                    <select id="editDistrict" disabled><option value="">Select District</option></select>
-                </div>
-                
-                <div class="form-field">
-                    <label><i class="fas fa-building"></i> Thana / Upazila</label>
-                    <select id="editUpazila" disabled><option value="">Select Upazila</option></select>
-                </div>
-                
-                <div class="form-field">
-                    <label><i class="fas fa-home"></i> Village / Area</label>
-                    <input type="text" id="editVillage" value="${escapeHtml(profile.village || '')}" placeholder="Village or Area">
-                </div>
-                
-                <div class="form-field">
-                    <label><i class="fas fa-location-dot"></i> Full Address</label>
-                    <textarea id="editFullAddress" rows="2" placeholder="House, Road, Landmark">${escapeHtml(profile.full_address || '')}</textarea>
-                </div>
-                
-                <button type="submit" class="btn-primary-profile" id="saveProfileBtn">
-                    <span><i class="fas fa-save"></i> Save Changes</span>
-                    <i class="fas fa-spinner fa-spin" style="display:none;"></i>
-                </button>
-            </form>
+                <i class="fas fa-chevron-right setting-arrow"></i>
+            </div>
         </div>
+        
+        <div class="profile-card">
+            <div class="profile-card-header">
+                <div class="profile-card-header-icon">
+                    <i class="fas fa-info-circle"></i>
+                </div>
+                <h3>Account Info</h3>
+            </div>
+            
+            <div class="info-row">
+                <div class="info-row-icon"><i class="fab fa-google"></i></div>
+                <div class="info-row-content">
+                    <div class="info-row-label">Account Type</div>
+                    <div class="info-row-value">Google Account</div>
+                </div>
+            </div>
+            
+            <div class="info-row">
+                <div class="info-row-icon"><i class="fas fa-calendar"></i></div>
+                <div class="info-row-content">
+                    <div class="info-row-label">Member Since</div>
+                    <div class="info-row-value">${currentUser.created_at 
+                        ? new Date(currentUser.created_at).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
+                        : 'Recently'}</div>
+                </div>
+            </div>
+        </div>
+        
+        <button class="btn-logout" onclick="handleLogout()">
+            <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
     `;
-    
-    setupEditLocationDropdowns();
-    setupPhoneInput();
 }
 
 // ============================================================
-// EDIT LOCATION DROPDOWNS
+// MODAL SETUP
 // ============================================================
-function setupEditLocationDropdowns() {
+function setupAllModals() {
+    const modals = ['editNameModal', 'editPhoneModal', 'editLocationModal'];
+    
+    modals.forEach(id => {
+        const modal = document.getElementById(id);
+        if (!modal) return;
+        
+        // Close on overlay click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal(id);
+        });
+    });
+    
+    // ESC to close any open modal
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            modals.forEach(id => {
+                const m = document.getElementById(id);
+                if (m && m.classList.contains('active')) closeModal(id);
+            });
+        }
+    });
+    
+    // Name: Enter to save
+    const nameInput = document.getElementById('editNameInput');
+    if (nameInput) {
+        nameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); saveNewName(); }
+        });
+        nameInput.addEventListener('input', () => clearFieldError('editNameError'));
+    }
+    
+    // Phone: Enter to save
+    const phoneInput = document.getElementById('editPhoneInput');
+    if (phoneInput) {
+        phoneInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); saveNewPhone(); }
+        });
+        phoneInput.addEventListener('input', () => {
+            phoneInput.value = phoneInput.value.replace(/\D/g, '');
+            clearFieldError('editPhoneError');
+        });
+    }
+}
+
+function clearFieldError(id) {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = ''; el.classList.remove('show'); }
+}
+
+function showFieldError(id, msg) {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = msg; el.classList.add('show'); }
+}
+
+function openModal(id) {
+    const modal = document.getElementById(id);
+    if (!modal) return;
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeModal(id) {
+    const modal = document.getElementById(id);
+    if (!modal) return;
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+}
+window.closeModal = closeModal;
+
+// ============================================================
+// NAME EDIT
+// ============================================================
+function openEditNameModal() {
+    const input = document.getElementById('editNameInput');
+    if (!input) return;
+    
+    input.value = getDisplayName();
+    clearFieldError('editNameError');
+    openModal('editNameModal');
+    
+    setTimeout(() => {
+        input.focus();
+        input.select();
+    }, 100);
+}
+window.openEditNameModal = openEditNameModal;
+
+async function saveNewName() {
+    const input = document.getElementById('editNameInput');
+    const btn = document.getElementById('saveNameBtn');
+    const btnText = btn.querySelector('span');
+    const btnSpinner = btn.querySelector('.fa-spinner');
+    
+    const newName = input.value.trim();
+    
+    if (!newName) {
+        showFieldError('editNameError', 'Please enter your name');
+        input.focus();
+        return;
+    }
+    if (newName.length < 2) {
+        showFieldError('editNameError', 'Name must be at least 2 characters');
+        input.focus();
+        return;
+    }
+    if (newName.length > 60) {
+        showFieldError('editNameError', 'Name too long (max 60 characters)');
+        input.focus();
+        return;
+    }
+    if (newName === getDisplayName()) {
+        closeModal('editNameModal');
+        return;
+    }
+    
+    btn.disabled = true;
+    if (btnText) btnText.style.display = 'none';
+    if (btnSpinner) btnSpinner.style.display = 'inline-block';
+    
+    try {
+        const { error } = await supabaseClient
+            .from('user_profiles')
+            .update({ 
+                full_name: newName,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', currentUser.id);
+        
+        if (error) throw error;
+        
+        currentProfile.full_name = newName;
+        updateNameInDOM(newName);
+        
+        showToast('Name updated!', 'success');
+        closeModal('editNameModal');
+        
+    } catch (error) {
+        console.error('Save name error:', error);
+        showFieldError('editNameError', error.message || 'Failed to save');
+    } finally {
+        btn.disabled = false;
+        if (btnText) btnText.style.display = 'inline-flex';
+        if (btnSpinner) btnSpinner.style.display = 'none';
+    }
+}
+window.saveNewName = saveNewName;
+
+function updateNameInDOM(newName) {
+    const headerName = document.getElementById('profileNameDisplay');
+    if (headerName) headerName.textContent = newName;
+    
+    const settingsName = document.getElementById('settingsNameValue');
+    if (settingsName) settingsName.textContent = newName;
+    
+    const infoRowName = document.querySelector('#infoRowName .info-row-value');
+    if (infoRowName) infoRowName.textContent = newName;
+    
+    const avatarLetter = document.getElementById('profileAvatarLetter');
+    if (avatarLetter) avatarLetter.textContent = newName.charAt(0).toUpperCase();
+    
+    document.title = newName + ' – My Profile | Novahub';
+}
+
+// ============================================================
+// PHONE EDIT
+// ============================================================
+function openEditPhoneModal() {
+    const input = document.getElementById('editPhoneInput');
+    if (!input) return;
+    
+    input.value = currentProfile.phone || '';
+    clearFieldError('editPhoneError');
+    openModal('editPhoneModal');
+    
+    setTimeout(() => {
+        input.focus();
+        input.select();
+    }, 100);
+}
+window.openEditPhoneModal = openEditPhoneModal;
+
+async function saveNewPhone() {
+    const input = document.getElementById('editPhoneInput');
+    const btn = document.getElementById('savePhoneBtn');
+    const btnText = btn.querySelector('span');
+    const btnSpinner = btn.querySelector('.fa-spinner');
+    
+    const newPhone = input.value.trim();
+    const phoneRegex = /^01[3-9]\d{8}$/;
+    
+    if (!newPhone) {
+        showFieldError('editPhoneError', 'Please enter your phone number');
+        input.focus();
+        return;
+    }
+    if (!phoneRegex.test(newPhone)) {
+        showFieldError('editPhoneError', 'Enter valid BD number (01XXXXXXXXX)');
+        input.focus();
+        return;
+    }
+    if (newPhone === currentProfile.phone) {
+        closeModal('editPhoneModal');
+        return;
+    }
+    
+    btn.disabled = true;
+    if (btnText) btnText.style.display = 'none';
+    if (btnSpinner) btnSpinner.style.display = 'inline-block';
+    
+    try {
+        const { error } = await supabaseClient
+            .from('user_profiles')
+            .update({ 
+                phone: newPhone,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', currentUser.id);
+        
+        if (error) throw error;
+        
+        currentProfile.phone = newPhone;
+        updatePhoneInDOM(newPhone);
+        
+        showToast('Phone number updated!', 'success');
+        closeModal('editPhoneModal');
+        
+    } catch (error) {
+        console.error('Save phone error:', error);
+        showFieldError('editPhoneError', error.message || 'Failed to save');
+    } finally {
+        btn.disabled = false;
+        if (btnText) btnText.style.display = 'inline-flex';
+        if (btnSpinner) btnSpinner.style.display = 'none';
+    }
+}
+window.saveNewPhone = saveNewPhone;
+
+function updatePhoneInDOM(newPhone) {
+    const settingsPhone = document.getElementById('settingsPhoneValue');
+    if (settingsPhone) settingsPhone.textContent = newPhone;
+    
+    const infoRowPhone = document.querySelector('#infoRowPhone .info-row-value');
+    if (infoRowPhone) infoRowPhone.textContent = newPhone;
+}
+
+// ============================================================
+// LOCATION EDIT — SETUP DROPDOWNS
+// ============================================================
+function setupLocationDropdowns() {
     const divSelect = document.getElementById('editDivision');
     const distSelect = document.getElementById('editDistrict');
     const upSelect = document.getElementById('editUpazila');
     
     if (!divSelect || !distSelect || !upSelect) return;
     
+    // Populate divisions
     const divisions = Object.keys(LOCATION_DATA.bangladesh.levels);
     divSelect.innerHTML = '<option value="">Select Division</option>' +
-        divisions.map(d => `<option value="${d}">${d}</option>`).join('');
+        divisions.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('');
     
-    if (profile.division) {
-        divSelect.value = profile.division;
-        const districts = Object.keys(LOCATION_DATA.bangladesh.levels[profile.division] || {});
-        distSelect.innerHTML = '<option value="">Select District</option>' +
-            districts.map(d => `<option value="${d}">${d}</option>`).join('');
-        distSelect.disabled = false;
-        
-        if (profile.district) {
-            distSelect.value = profile.district;
-            const upazilas = LOCATION_DATA.bangladesh.levels[profile.division]?.[profile.district] || [];
-            upSelect.innerHTML = '<option value="">Select Upazila</option>' +
-                upazilas.map(u => `<option value="${u}">${u}</option>`).join('');
-            upSelect.disabled = false;
-            if (profile.upazila) upSelect.value = profile.upazila;
-        }
-    }
-    
+    // Division change → populate districts
     divSelect.addEventListener('change', () => {
         const div = divSelect.value;
+        
         distSelect.innerHTML = '<option value="">Select District</option>';
         upSelect.innerHTML = '<option value="">Select Upazila</option>';
+        clearFieldError('editLocationError');
         
         if (!div) {
             distSelect.disabled = true;
@@ -467,58 +791,144 @@ function setupEditLocationDropdowns() {
         
         const districts = Object.keys(LOCATION_DATA.bangladesh.levels[div] || {});
         distSelect.innerHTML = '<option value="">Select District</option>' +
-            districts.map(d => `<option value="${d}">${d}</option>`).join('');
+            districts.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('');
         distSelect.disabled = false;
         upSelect.disabled = true;
     });
     
+    // District change → populate upazilas
     distSelect.addEventListener('change', () => {
         const div = divSelect.value;
         const dist = distSelect.value;
-        upSelect.innerHTML = '<option value="">Select Upazila</option>';
         
-        if (!dist) { upSelect.disabled = true; return; }
+        upSelect.innerHTML = '<option value="">Select Upazila</option>';
+        clearFieldError('editLocationError');
+        
+        if (!dist) {
+            upSelect.disabled = true;
+            return;
+        }
         
         const upazilas = LOCATION_DATA.bangladesh.levels[div]?.[dist] || [];
         upSelect.innerHTML = '<option value="">Select Upazila</option>' +
-            upazilas.map(u => `<option value="${u}">${u}</option>`).join('');
+            upazilas.map(u => `<option value="${escapeHtml(u)}">${escapeHtml(u)}</option>`).join('');
         upSelect.disabled = false;
     });
-}
-
-function setupPhoneInput() {
-    const phoneInput = document.getElementById('editPhone');
-    if (!phoneInput) return;
     
-    phoneInput.addEventListener('input', (e) => {
-        e.target.value = e.target.value.replace(/\D/g, '');
-    });
+    // Upazila change → clear error
+    upSelect.addEventListener('change', () => clearFieldError('editLocationError'));
+    
+    // Village input
+    const villageInput = document.getElementById('editVillage');
+    if (villageInput) {
+        villageInput.addEventListener('input', () => clearFieldError('editLocationError'));
+    }
 }
 
 // ============================================================
-// SAVE PROFILE
+// LOCATION EDIT — OPEN MODAL
 // ============================================================
-async function saveProfile(event) {
-    event.preventDefault();
+function openEditLocationModal() {
+    const divSelect = document.getElementById('editDivision');
+    const distSelect = document.getElementById('editDistrict');
+    const upSelect = document.getElementById('editUpazila');
+    const villageInput = document.getElementById('editVillage');
+    const addressInput = document.getElementById('editFullAddress');
     
-    const btn = document.getElementById('saveProfileBtn');
+    if (!divSelect) return;
+    
+    clearFieldError('editLocationError');
+    
+    // Reset selects to empty first
+    divSelect.value = '';
+    distSelect.innerHTML = '<option value="">Select District</option>';
+    distSelect.disabled = true;
+    upSelect.innerHTML = '<option value="">Select Upazila</option>';
+    upSelect.disabled = true;
+    if (villageInput) villageInput.value = '';
+    if (addressInput) addressInput.value = '';
+    
+    // Prefill current values with cascade
+    if (currentProfile.division && LOCATION_DATA.bangladesh.levels[currentProfile.division]) {
+        divSelect.value = currentProfile.division;
+        
+        const districts = Object.keys(LOCATION_DATA.bangladesh.levels[currentProfile.division] || {});
+        distSelect.innerHTML = '<option value="">Select District</option>' +
+            districts.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('');
+        distSelect.disabled = false;
+        
+        if (currentProfile.district) {
+            distSelect.value = currentProfile.district;
+            
+            const upazilas = LOCATION_DATA.bangladesh.levels[currentProfile.division]?.[currentProfile.district] || [];
+            upSelect.innerHTML = '<option value="">Select Upazila</option>' +
+                upazilas.map(u => `<option value="${escapeHtml(u)}">${escapeHtml(u)}</option>`).join('');
+            upSelect.disabled = false;
+            
+            if (currentProfile.upazila) upSelect.value = currentProfile.upazila;
+        }
+    }
+    
+    if (villageInput) villageInput.value = currentProfile.village || '';
+    if (addressInput) addressInput.value = currentProfile.full_address || '';
+    
+    openModal('editLocationModal');
+}
+window.openEditLocationModal = openEditLocationModal;
+
+// ============================================================
+// LOCATION EDIT — SAVE
+// ============================================================
+async function saveNewLocation() {
+    const divSelect = document.getElementById('editDivision');
+    const distSelect = document.getElementById('editDistrict');
+    const upSelect = document.getElementById('editUpazila');
+    const villageInput = document.getElementById('editVillage');
+    const addressInput = document.getElementById('editFullAddress');
+    
+    const btn = document.getElementById('saveLocationBtn');
     const btnText = btn.querySelector('span');
     const btnSpinner = btn.querySelector('.fa-spinner');
     
-    const phone = document.getElementById('editPhone').value.trim();
-    const division = document.getElementById('editDivision').value;
-    const district = document.getElementById('editDistrict').value;
-    const upazila = document.getElementById('editUpazila').value;
-    const village = document.getElementById('editVillage').value.trim();
-    const fullAddress = document.getElementById('editFullAddress').value.trim();
+    const division = divSelect.value;
+    const district = distSelect.value;
+    const upazila = upSelect.value;
+    const village = villageInput.value.trim();
+    const fullAddress = addressInput.value.trim();
     
-    // Phone validation (optional but if given must be valid)
-    if (phone) {
-        const phoneRegex = /^01[3-9]\d{8}$/;
-        if (!phoneRegex.test(phone)) {
-            showToast('Enter valid phone (01XXXXXXXXX)', 'warning');
-            return;
-        }
+    // Validation
+    if (!division) {
+        showFieldError('editLocationError', 'Please select a division');
+        divSelect.focus();
+        return;
+    }
+    if (!district) {
+        showFieldError('editLocationError', 'Please select a district');
+        distSelect.focus();
+        return;
+    }
+    if (!upazila) {
+        showFieldError('editLocationError', 'Please select a thana/upazila');
+        upSelect.focus();
+        return;
+    }
+    if (!village) {
+        showFieldError('editLocationError', 'Please enter village/area name');
+        villageInput.focus();
+        return;
+    }
+    
+    // Check if unchanged
+    const isSame = 
+        division === currentProfile.division &&
+        district === currentProfile.district &&
+        upazila === currentProfile.upazila &&
+        village === (currentProfile.village || '') &&
+        fullAddress === (currentProfile.full_address || '');
+    
+    if (isSame) {
+        closeModal('editLocationModal');
+        return;
     }
     
     btn.disabled = true;
@@ -526,40 +936,72 @@ async function saveProfile(event) {
     if (btnSpinner) btnSpinner.style.display = 'inline-block';
     
     try {
-        const updates = {
-            phone: phone || null,
-            division: division || null,
-            district: district || null,
-            upazila: upazila || null,
-            village: village || null,
-            full_address: fullAddress || null,
-            updated_at: new Date().toISOString()
-        };
-        
         const { error } = await supabaseClient
             .from('user_profiles')
-            .update(updates)
-            .eq('id', user.id);
+            .update({
+                division: division,
+                district: district,
+                upazila: upazila,
+                village: village,
+                full_address: fullAddress || null,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', currentUser.id);
         
         if (error) throw error;
         
-        profile = { ...profile, ...updates };
+        // Update local state
+        currentProfile.division = division;
+        currentProfile.district = district;
+        currentProfile.upazila = upazila;
+        currentProfile.village = village;
+        currentProfile.full_address = fullAddress || null;
         
-        showToast('Profile updated successfully!', 'success');
+        updateAddressInDOM();
         
-        setTimeout(() => switchTab('info'), 800);
+        showToast('Delivery address updated!', 'success');
+        closeModal('editLocationModal');
         
     } catch (error) {
-        console.error('Save profile error:', error);
-        showToast('Failed to save: ' + error.message, 'error');
+        console.error('Save location error:', error);
+        showFieldError('editLocationError', error.message || 'Failed to save address');
     } finally {
         btn.disabled = false;
         if (btnText) btnText.style.display = 'inline-flex';
         if (btnSpinner) btnSpinner.style.display = 'none';
     }
 }
+window.saveNewLocation = saveNewLocation;
 
-window.saveProfile = saveProfile;
+function updateAddressInDOM() {
+    const addressText = getAddressText();
+    
+    const settingsAddress = document.getElementById('settingsAddressValue');
+    if (settingsAddress) settingsAddress.textContent = addressText;
+    
+    const infoRowAddress = document.querySelector('#infoRowAddress .info-row-value');
+    if (infoRowAddress) infoRowAddress.textContent = addressText;
+    
+    // Full address row — render or update
+    const infoRowFull = document.getElementById('infoRowFullAddress');
+    if (currentProfile.full_address) {
+        if (infoRowFull) {
+            const val = infoRowFull.querySelector('.info-row-value');
+            if (val) val.textContent = currentProfile.full_address;
+        }
+    }
+}
+
+// ============================================================
+// PHONE INPUT (setup for phone modal)
+// ============================================================
+function setupPhoneInput() {
+    const input = document.getElementById('editPhoneInput');
+    if (!input) return;
+    input.addEventListener('input', (e) => {
+        e.target.value = e.target.value.replace(/\D/g, '');
+    });
+}
 
 // ============================================================
 // PHOTO UPLOAD
@@ -567,7 +1009,6 @@ window.saveProfile = saveProfile;
 function setupPhotoUpload() {
     const input = document.getElementById('profilePhotoInput');
     if (!input) return;
-    
     input.addEventListener('change', handlePhotoSelect);
 }
 
@@ -579,7 +1020,6 @@ function triggerPhotoUpload() {
         input.click();
     }
 }
-
 window.triggerPhotoUpload = triggerPhotoUpload;
 
 async function handlePhotoSelect(event) {
@@ -602,32 +1042,25 @@ async function handlePhotoSelect(event) {
     const icon = document.getElementById('profilePhotoIcon');
     
     if (btn) btn.classList.add('uploading');
-    if (icon) {
-        icon.className = 'fas fa-spinner';
-    }
+    if (icon) icon.className = 'fas fa-spinner';
     
     try {
         showToast('Uploading photo...', 'info');
-        
-        // Upload to Cloudinary
         const result = await uploadToCloudinary(file);
         
         if (!result.success) throw new Error('Upload failed');
         
-        // Save to Supabase
         const { error } = await supabaseClient
             .from('user_profiles')
             .update({ 
                 avatar_url: result.url,
                 updated_at: new Date().toISOString()
             })
-            .eq('id', user.id);
+            .eq('id', currentUser.id);
         
         if (error) throw error;
         
-        profile.avatar_url = result.url;
-        
-        // Update avatar in DOM
+        currentProfile.avatar_url = result.url;
         updateAvatarInDOM(result.url);
         
         showToast('Photo updated!', 'success');
@@ -638,16 +1071,11 @@ async function handlePhotoSelect(event) {
     } finally {
         isUploading = false;
         if (btn) btn.classList.remove('uploading');
-        if (icon) {
-            icon.className = 'fas fa-camera';
-        }
+        if (icon) icon.className = 'fas fa-camera';
         event.target.value = '';
     }
 }
 
-// ============================================================
-// UPLOAD TO CLOUDINARY
-// ============================================================
 async function uploadToCloudinary(file) {
     const formData = new FormData();
     formData.append('file', file);
@@ -665,11 +1093,7 @@ async function uploadToCloudinary(file) {
                 try {
                     const response = JSON.parse(xhr.responseText);
                     if (response.secure_url) {
-                        resolve({ 
-                            success: true, 
-                            url: response.secure_url,
-                            publicId: response.public_id
-                        });
+                        resolve({ success: true, url: response.secure_url });
                     } else {
                         reject(new Error('No URL returned'));
                     }
@@ -691,36 +1115,30 @@ async function uploadToCloudinary(file) {
     });
 }
 
-// ============================================================
-// UPDATE AVATAR IN DOM
-// ============================================================
 function updateAvatarInDOM(url) {
     const wrap = document.querySelector('.profile-avatar-wrap');
     if (!wrap) return;
     
-    // Remove old avatar
     const oldImg = wrap.querySelector('.profile-avatar-img');
     const oldLetter = wrap.querySelector('.profile-avatar-letter');
     if (oldImg) oldImg.remove();
     if (oldLetter) oldLetter.remove();
     
-    // Create new image
     const img = document.createElement('img');
     img.src = url;
     img.alt = 'Profile';
     img.className = 'profile-avatar-img';
     img.id = 'profileAvatarImg';
     img.onerror = () => {
-        img.outerHTML = `<div class="profile-avatar-letter">${(profile.full_name || user.email).charAt(0).toUpperCase()}</div>`;
+        img.outerHTML = `<div class="profile-avatar-letter">${getDisplayName().charAt(0).toUpperCase()}</div>`;
     };
     
-    // Insert before google badge
     const badge = wrap.querySelector('.profile-google-badge');
-    if (badge) {
-        wrap.insertBefore(img, badge);
-    } else {
-        wrap.insertBefore(img, wrap.firstChild);
-    }
+    const photoBtn = wrap.querySelector('.profile-photo-btn');
+    
+    if (badge) wrap.insertBefore(img, badge);
+    else if (photoBtn) wrap.insertBefore(img, photoBtn);
+    else wrap.insertBefore(img, wrap.firstChild);
 }
 
 // ============================================================
@@ -738,37 +1156,4 @@ function formatPrice(price) {
     return curr + n.toLocaleString('en-BD', { maximumFractionDigits: 2 });
 }
 
-function showToast(message, type = 'info') {
-    const container = document.getElementById('toastContainer');
-    if (!container) return;
-    
-    const icons = {
-        success: 'fa-check-circle',
-        error: 'fa-exclamation-circle',
-        info: 'fa-info-circle',
-        warning: 'fa-exclamation-triangle'
-    };
-    
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    toast.innerHTML = `
-        <div class="toast-icon"><i class="fas ${icons[type] || icons.info}"></i></div>
-        <span class="toast-message">${escapeHtml(message)}</span>
-        <button class="toast-close"><i class="fas fa-times"></i></button>
-    `;
-    
-    container.appendChild(toast);
-    
-    const timeout = setTimeout(() => {
-        toast.classList.add('hide');
-        setTimeout(() => toast.remove(), 300);
-    }, 3500);
-    
-    toast.querySelector('.toast-close').addEventListener('click', () => {
-        clearTimeout(timeout);
-        toast.classList.add('hide');
-        setTimeout(() => toast.remove(), 300);
-    });
-}
-
-console.log('✅ Profile script loaded (Google + Photo Upload)');
+console.log('✅ Profile script loaded (v7 — Professional Redesign)');

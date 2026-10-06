@@ -1,15 +1,9 @@
 // ============================================================
-// NOVAHUB — Supabase Configuration (v3)
+// NOVAHUB — Supabase Configuration (v4)
 // Domain: novahubgadgets.com
 // WhatsApp: 01947939982
-// 
-// This is the READ-ONLY storefront client.
-// All write operations (add/edit/delete products) are
-// handled by a separate, secured admin backend that is
-// NOT exposed to this client.
 // ============================================================
 
-// ==================== SUPABASE CONFIG ====================
 const SUPABASE_URL = 'https://oxnfiueqmvggtjtciqbn.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_jYBypv_FEbLfWYDqFEeEkw_IA2WmZMk';
 
@@ -30,7 +24,6 @@ window.settings = {
 };
 
 // ==================== USER HELPERS ====================
-
 async function getCurrentUser() {
     try {
         const { data: { user } } = await supabaseClient.auth.getUser();
@@ -74,7 +67,6 @@ async function isAdmin() {
 }
 
 // ==================== SETTINGS LOADER ====================
-
 async function loadSettings() {
     try {
         const { data, error } = await supabaseClient
@@ -111,7 +103,6 @@ async function loadSettings() {
 }
 
 // ==================== FORMATTING HELPERS ====================
-
 function formatPrice(price) {
     const curr = window.settings.currency || '৳';
     const safe = parseFloat(price) || 0;
@@ -138,7 +129,6 @@ function escapeHtml(unsafe) {
 }
 
 // ==================== ORDER ID GENERATOR ====================
-
 function generateOrderId() {
     const prefix = window.settings.orderPrefix || 'NV';
     const timestamp = Date.now().toString().slice(-6);
@@ -147,7 +137,6 @@ function generateOrderId() {
 }
 
 // ==================== VARIANT HELPERS ====================
-
 function generateItemKey(productId, selectedVariant) {
     if (!selectedVariant || Object.keys(selectedVariant).length === 0) {
         return productId;
@@ -177,7 +166,6 @@ function areVariantsEqual(v1, v2) {
 }
 
 // ==================== TOAST ====================
-
 function showToast(message, type) {
     type = type || 'info';
     const container = document.getElementById('toastContainer');
@@ -186,13 +174,11 @@ function showToast(message, type) {
         return;
     }
     
-    // Remove duplicate messages
     const existing = container.querySelectorAll('.toast');
     existing.forEach(el => {
         if (el.textContent.trim() === message.trim()) el.remove();
     });
     
-    // Keep max 3 toasts
     while (container.children.length >= 3) {
         container.firstChild.remove();
     }
@@ -234,14 +220,6 @@ function showToast(message, type) {
     });
 }
 
-// ==================== PAGE-VISIBILITY SAFE TIMERS ====================
-
-// Pause auto-refresh timers when tab is hidden (performance)
-let __isTabVisible = true;
-document.addEventListener('visibilitychange', () => {
-    __isTabVisible = !document.hidden;
-});
-
 // ==================== EXPORTS ====================
 window.supabaseClient = supabaseClient;
 window.getCurrentUser = getCurrentUser;
@@ -256,4 +234,5 @@ window.generateItemKey = generateItemKey;
 window.areVariantsEqual = areVariantsEqual;
 window.showToast = showToast;
 
-console.log('✅ Supabase Config loaded (v3 — Read-Only Client)');
+// ⚡ FIXED: v3 → v4 ⚡
+console.log('✅ Supabase Config loaded (v4 — Read-Only Client)');

@@ -64,7 +64,5 @@
     { "source": "/shop", "destination": "/", "permanent": true },
     { "source": "/products", "destination": "/", "permanent": true },
     { "source": "/track", "destination": "/order-track.html", "permanent": false }
-  ],
-  "cleanUrls": true,
-  "trailingSlash": false
+  ]
 }

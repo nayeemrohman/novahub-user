@@ -1,7 +1,6 @@
 // ============================================================
-// NOVAHUB — Order Track Script (v3 — Pretty URL Redirect)
-// Domain: novahubgadgets.com
-// URL: /order-track/NV618181728 → auto-detect + fetch
+// NOVAHUB — Order Track Script (v4)
+// FIXED: Requires Order ID + Phone Number for privacy
 // ============================================================
 
 const STATUS_STEPS = [
@@ -21,48 +20,34 @@ document.addEventListener('DOMContentLoaded', async () => {
     await updateHeaderProfile();
     
     const input = document.getElementById('orderIdInput');
+    const phoneInput = document.getElementById('phoneVerifyInput');
+    
     if (input) {
         input.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') trackOrder();
         });
         input.focus();
     }
+    if (phoneInput) {
+        phoneInput.addEventListener('input', (e) => {
+            e.target.value = e.target.value.replace(/\D/g, '');
+        });
+        phoneInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') trackOrder();
+        });
+    }
     
-    // ============================================================
-    // DETECT ORDER ID FROM URL — 2 ways:
-    //   1. Pretty URL:  /order-track/NV618181728
-    //   2. Query string: /order-track.html?track=NV618181728
-    // ============================================================
-    const orderId = detectOrderIdFromURL();
-    
-    if (orderId) {
-        console.log('📍 Detected order ID from URL:', orderId);
-        if (input) input.value = orderId;
-        // Auto track
-        await fetchAndRenderOrder(orderId);
+    // Prefill phone if logged in
+    const user = await getCurrentUser();
+    if (user) {
+        const profile = await getUserProfile(user.id);
+        if (profile?.phone && phoneInput) {
+            phoneInput.value = profile.phone;
+        }
     }
     
     console.log('✅ Order Track ready');
 });
-
-// ============================================================
-// DETECT ORDER ID FROM URL
-// ============================================================
-function detectOrderIdFromURL() {
-    // Method 1: Query string (from Vercel rewrite)
-    const params = new URLSearchParams(window.location.search);
-    const fromQuery = params.get('track') || params.get('id');
-    if (fromQuery) return fromQuery.trim().toUpperCase();
-    
-    // Method 2: URL path — /order-track/NV618181728 or /track/NV618181728
-    const path = window.location.pathname;
-    const match = path.match(/\/(?:order-track|track)\/([A-Za-z0-9\-_]+)\/?$/i);
-    if (match && match[1]) {
-        return match[1].trim().toUpperCase();
-    }
-    
-    return null;
-}
 
 // ============================================================
 // LOAD SETTINGS
@@ -70,10 +55,7 @@ function detectOrderIdFromURL() {
 async function loadSettings() {
     try {
         const { data } = await supabaseClient
-            .from('settings')
-            .select('*')
-            .eq('id', 1)
-            .single();
+            .from('settings').select('*').eq('id', 1).single();
         
         if (data) {
             window.settings = {
@@ -89,36 +71,24 @@ async function loadSettings() {
 }
 
 // ============================================================
-// HEADER — Profile Click
+// HEADER PROFILE
 // ============================================================
 async function handleProfileClick() {
     const user = await getCurrentUser();
-    if (user) {
-        window.location.href = 'profile.html';
-    } else {
-        window.location.href = 'auth.html';
-    }
+    if (user) window.location.href = 'profile.html';
+    else window.location.href = 'auth.html';
 }
 window.handleProfileClick = handleProfileClick;
 
-// ============================================================
-// HEADER — Update Profile Photo
-// ============================================================
 async function updateHeaderProfile() {
-    const user = await getCurrentUser();
     const profileIcon = document.getElementById('headerProfileIcon');
-    
     if (!profileIcon) return;
     
+    const user = await getCurrentUser();
     if (user) {
         const profile = await getUserProfile(user.id);
         const googleData = user.user_metadata || {};
-        
-        const photoUrl = profile?.avatar_url 
-            || googleData.avatar_url 
-            || googleData.picture 
-            || null;
-        
+        const photoUrl = profile?.avatar_url || googleData.avatar_url || googleData.picture || null;
         const parentBtn = profileIcon.parentElement;
         
         if (photoUrl) {
@@ -135,37 +105,40 @@ async function updateHeaderProfile() {
 // TRACK ORDER — Click Handler
 // ============================================================
 async function trackOrder() {
-    const input = document.getElementById('orderIdInput');
-    if (!input) return;
+    const orderInput = document.getElementById('orderIdInput');
+    const phoneInput = document.getElementById('phoneVerifyInput');
     
-    const orderId = input.value.trim().toUpperCase();
+    if (!orderInput || !phoneInput) return;
+    
+    const orderId = orderInput.value.trim().toUpperCase();
+    const phone = phoneInput.value.trim();
     
     if (!orderId) {
         showToast('Please enter an Order ID', 'warning');
-        input.focus();
+        orderInput.focus();
         return;
     }
     
-    // ✅ REDIRECT TO PRETTY URL
-    // /order-track.html → /order-track/NV618181728
-    const prettyUrl = '/order-track/' + encodeURIComponent(orderId);
-    
-    console.log('🔄 Redirecting to:', prettyUrl);
-    
-    // If already on pretty URL, don't reload
-    if (window.location.pathname === prettyUrl) {
-        await fetchAndRenderOrder(orderId);
-    } else {
-        // Redirect — browser will load page, then detectOrderIdFromURL will handle it
-        window.location.href = prettyUrl;
+    if (!phone) {
+        showToast('Please enter your phone number', 'warning');
+        phoneInput.focus();
+        return;
     }
+    
+    if (!/^01[3-9]\d{8}$/.test(phone)) {
+        showToast('Enter valid phone number (01XXXXXXXXX)', 'warning');
+        phoneInput.focus();
+        return;
+    }
+    
+    await fetchAndRenderOrder(orderId, phone);
 }
 window.trackOrder = trackOrder;
 
 // ============================================================
-// FETCH & RENDER ORDER
+// FETCH & VERIFY ORDER
 // ============================================================
-async function fetchAndRenderOrder(orderId) {
+async function fetchAndRenderOrder(orderId, phone) {
     showState('loading');
     
     try {
@@ -181,18 +154,19 @@ async function fetchAndRenderOrder(orderId) {
             return;
         }
         
-        console.log('✅ Order loaded:', data.order_id);
+        // Verify phone number matches (privacy protection)
+        const storedPhone = (data.phone || '').trim();
+        if (storedPhone !== phone) {
+            console.log('❌ Phone mismatch for order:', orderId);
+            showState('notFound');
+            return;
+        }
+        
+        console.log('✅ Order verified:', data.order_id);
         renderOrder(data);
         showState('details');
         
-        // Update page title with order ID
         document.title = 'Order ' + orderId + ' – Novahub';
-        
-        // Update URL if not already pretty
-        const prettyPath = '/order-track/' + encodeURIComponent(orderId);
-        if (window.location.pathname !== prettyPath) {
-            window.history.replaceState({}, '', prettyPath);
-        }
         
     } catch (error) {
         console.error('Track error:', error);
@@ -209,32 +183,27 @@ function showState(state) {
     const notFound = document.getElementById('notFoundState');
     const details = document.getElementById('orderDetailsState');
     
-    if (trackCard) trackCard.style.display = (state === 'details' || state === 'loading' || state === 'notFound') ? 'none' : 'block';
+    if (trackCard) trackCard.style.display = (state === 'form') ? 'block' : 'none';
     if (loading) loading.style.display = (state === 'loading') ? 'block' : 'none';
     if (notFound) notFound.style.display = (state === 'notFound') ? 'block' : 'none';
     if (details) details.style.display = (state === 'details') ? 'block' : 'none';
 }
 
 // ============================================================
-// RESET — Go Back to Track Form
+// RESET
 // ============================================================
 function resetTrack() {
-    // Clear URL to /order-track
-    window.history.replaceState({}, '', '/order-track');
+    const orderInput = document.getElementById('orderIdInput');
+    const phoneInput = document.getElementById('phoneVerifyInput');
     
-    // Reset input
-    const input = document.getElementById('orderIdInput');
-    if (input) input.value = '';
+    if (orderInput) orderInput.value = '';
+    if (phoneInput) phoneInput.value = '';
     
-    // Reset title
     document.title = 'Track Your Order – Novahub';
-    
-    // Show track card
     showState('form');
     
-    // Focus input
     setTimeout(() => {
-        if (input) input.focus();
+        if (orderInput) orderInput.focus();
     }, 100);
 }
 window.resetTrack = resetTrack;
@@ -247,7 +216,6 @@ function renderOrder(order) {
     const currentIdx = STATUS_STEPS.findIndex(s => s.key === currentStatus);
     const isCancelled = currentStatus === 'cancelled';
     
-    // ===== Timeline =====
     const timelineEl = document.getElementById('statusTimeline');
     if (timelineEl) {
         if (isCancelled) {
@@ -274,10 +242,9 @@ function renderOrder(order) {
         }
     }
     
-    // ===== Order Info =====
     setText('displayOrderId', order.order_id);
     setText('displayName', order.full_name || '-');
-    setText('displayPhone', order.phone || '-');
+    setText('displayPhone', maskPhone(order.phone || '-'));
     
     const addressParts = [order.village, order.upazila, order.district, order.division].filter(Boolean);
     setText('displayAddress', addressParts.join(', ') || '-');
@@ -290,14 +257,12 @@ function renderOrder(order) {
         : '-';
     setText('displayDate', date);
     
-    // ===== Status Badge =====
     const statusEl = document.getElementById('displayStatus');
     if (statusEl) {
         statusEl.textContent = currentStatus.charAt(0).toUpperCase() + currentStatus.slice(1);
         statusEl.className = 'status-badge ' + currentStatus;
     }
     
-    // ===== Items =====
     const items = Array.isArray(order.items) ? order.items : [];
     const itemsEl = document.getElementById('displayItems');
     
@@ -325,7 +290,6 @@ function renderOrder(order) {
         }
     }
     
-    // ===== Summary =====
     setText('displaySubtotal', formatPrice(order.subtotal || 0));
     setText('displayDelivery', formatPrice(order.delivery_charge || 0));
     setText('displayTotal', formatPrice(order.total || 0));
@@ -339,16 +303,15 @@ function setText(id, value) {
     if (el) el.textContent = value;
 }
 
+function maskPhone(phone) {
+    if (!phone || phone.length < 6) return phone;
+    return phone.substring(0, 3) + '****' + phone.substring(phone.length - 3);
+}
+
 function formatPrice(price) {
     const curr = window.settings?.currency || '৳';
     const n = parseFloat(price) || 0;
     return curr + n.toLocaleString('en-BD', { maximumFractionDigits: 2 });
 }
 
-function escapeHtml(str) {
-    if (!str) return '';
-    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
-    return String(str).replace(/[&<>"']/g, m => map[m]);
-}
-
-console.log('✅ Order Track script loaded (v3 — Pretty URL)');
+console.log('✅ Order Track script loaded (v4 — Phone Verification)');

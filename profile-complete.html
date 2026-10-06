@@ -26,8 +26,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
-    <link rel="stylesheet" href="assets/css/style.css?v=3">
-    <link rel="stylesheet" href="assets/css/profile-complete.css?v=3">
+    <link rel="stylesheet" href="assets/css/style.css?v=5">
+    <link rel="stylesheet" href="assets/css/profile-complete.css?v=5">
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -95,6 +95,7 @@
                             placeholder="01XXXXXXXXX" 
                             autocomplete="tel"
                             maxlength="11"
+                            inputmode="numeric"
                             required>
                         <small class="pc-error" id="pcPhoneError"></small>
                     </div>
@@ -137,6 +138,7 @@
                             type="text" 
                             id="pcVillage" 
                             placeholder="Village or Area name" 
+                            maxlength="80"
                             required>
                         <small class="pc-error" id="pcVillageError"></small>
                     </div>
@@ -149,7 +151,8 @@
                         <textarea 
                             id="pcFullAddress" 
                             rows="2" 
-                            placeholder="House, Road, Landmark"></textarea>
+                            placeholder="House, Road, Landmark"
+                            maxlength="200"></textarea>
                     </div>
                     
                     <button type="submit" class="pc-submit-btn" id="pcSubmitBtn">
@@ -174,9 +177,9 @@
 
     <div id="toastContainer" class="toast-container"></div>
 
-    <script src="assets/js/supabase-config.js?v=3"></script>
-    <script src="assets/js/location-data.js?v=3"></script>
-    <script src="assets/js/auth.js?v=3"></script>
-    <script src="assets/js/profile-complete.js?v=3"></script>
+    <script src="assets/js/supabase-config.js?v=5"></script>
+    <script src="assets/js/auth.js?v=5"></script>
+    <script src="assets/js/location-data.js?v=5"></script>
+    <script src="assets/js/profile-complete.js?v=5"></script>
 </body>
 </html>
