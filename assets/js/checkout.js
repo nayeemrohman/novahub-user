@@ -19,8 +19,7 @@ let selectedDistrict = '';
 let selectedUpazila = '';
 
 // ============================================================
-// BACK BUTTON
-// ============================================================
+// BACK BUTTONduplicate=======================================================
 function goBack() {
     if (window.history.length > 1) {
         window.history.back();
