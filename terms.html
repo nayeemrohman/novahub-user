@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    
+    <title>Terms & Conditions – Novahub</title>
+    <meta name="description" content="Read NovaHub's Terms & Conditions. Learn about our policies on orders, payments, shipping, returns and more.">
+    <meta name="author" content="Novahub">
+    
+    <meta name="robots" content="index, follow">
+    <meta name="googlebot" content="index, follow">
+    
+    <link rel="canonical" href="https://novahubgadgets.com/terms.html">
+    
+    <link rel="icon" type="image/jpeg" href="assets/images/logo.jpg">
+    <link rel="apple-touch-icon" href="assets/images/logo.jpg">
+    
+    <meta name="theme-color" content="#0A0A0A">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="dns-prefetch" href="https://oxnfiueqmvggtjtciqbn.supabase.co">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="assets/css/style.css?v=3">
+    <link rel="stylesheet" href="assets/css/static.css?v=3">
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="static-page">
+
+    <!-- ===== HEADER ===== -->
+    <header class="sticky-header header-compact">
+        <div class="header-left">
+            <button class="menu-toggle-btn" id="headerProfileBtn" onclick="handleProfileClick()" aria-label="Profile">
+                <i class="fas fa-user" id="headerProfileIcon"></i>
+            </button>
+        </div>
+        <div class="header-center">
+            <h1 class="header-title">NOVA<span class="brand-red">HUB</span></h1>
+        </div>
+        <div class="header-right">
+            <button class="cart-icon-container" id="headerCartBtn" onclick="openCartFromStatic()" aria-label="Cart">
+                <i class="fas fa-shopping-cart cart-icon"></i>
+                <span id="cartCount" class="cart-count">0</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- ===== MAIN ===== -->
+    <main class="static-wrapper">
+        <div class="static-content">
+            <h1 class="static-main-title">Terms & Conditions</h1>
+            
+            <p class="static-updated">Last Updated: October 2026</p>
+            
+            <div class="static-text">
+                <p>By using NovaHub or placing an order, you agree to these Terms & Conditions.</p>
+                
+                <ul>
+                    <li>Product images, specifications, prices, and availability may change without prior notice.</li>
+                    <li>Customers must provide accurate name, phone number, and delivery address.</li>
+                    <li>NovaHub may cancel orders due to stock issues, incorrect pricing, or verification problems.</li>
+                    <li>Delivery times are estimates and may vary depending on location and courier services.</li>
+                    <li>Returns, refunds, replacements, and warranties are subject to our applicable policies and product conditions.</li>
+                    <li>Customers are responsible for providing correct order information and using products according to their intended purpose.</li>
+                    <li>Website content, branding, graphics, and other materials may not be copied or reused without permission.</li>
+                    <li>NovaHub is not responsible for delays or issues caused by third-party services beyond our reasonable control.</li>
+                    <li>These terms may be updated from time to time. The latest version will always be published on this page.</li>
+                </ul>
+                
+                <p class="static-footer-note">For questions or support, please contact NovaHub through our official contact channels.</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- ===== FOOTER ===== -->
+    <footer class="footer">
+        <div class="footer-container">
+            <img src="assets/images/logo.jpg" alt="Novahub" class="footer-logo" loading="lazy">
+            <h2 class="footer-shop-name">NOVAHUB</h2>
+            <p class="footer-description">Premium Gadget Accessories Store in Bangladesh. Latest tech at best prices.</p>
+            <div class="footer-social">
+                <a href="#" target="_blank" class="social-icon" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+                <a href="#" target="_blank" class="social-icon" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                <a href="#" target="_blank" class="social-icon" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                <a href="#" target="_blank" class="social-icon" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+            </div>
+            <nav class="footer-links">
+                <a href="about.html" class="footer-link">About Us</a>
+                <a href="terms.html" class="footer-link">Terms & Conditions</a>
+                <a href="privacy.html" class="footer-link">Privacy Policy</a>
+                <a href="order-track.html" class="footer-link">Order Track</a>
+            </nav>
+            <div class="footer-copyright">&copy; 2026 Novahub. All Rights Reserved.</div>
+        </div>
+    </footer>
+
+    <!-- ===== WHATSAPP ===== -->
+    <a href="https://wa.me/8801947939982" target="_blank" class="whatsapp-btn" aria-label="WhatsApp">
+        <i class="fab fa-whatsapp"></i>
+    </a>
+
+    <!-- ===== TOAST ===== -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- ===== SCRIPTS ===== -->
+    <script src="assets/js/supabase-config.js?v=3"></script>
+    <script src="assets/js/auth.js?v=3"></script>
+    <script src="assets/js/static-shared.js?v=3"></script>
+</body>
+</html>

@@ -1,0 +1,203 @@
+# ============================================================
+# NOVAHUB — robots.txt
+# Premium Gadget Accessories Store in Bangladesh
+# Domain: https://novahubgadgets.com
+# Last Updated: 2026
+# ============================================================
+
+# ==================== DEFAULT (All Bots) ====================
+User-agent: *
+Allow: /
+Allow: /index.html
+Allow: /about.html
+Allow: /terms.html
+Allow: /privacy.html
+Allow: /product.html
+Allow: /order-track.html
+Allow: /assets/
+Allow: /assets/images/
+Allow: /assets/css/
+Allow: /assets/js/
+
+# Block Private Pages
+Disallow: /admin/
+Disallow: /checkout.html
+Disallow: /auth.html
+Disallow: /profile.html
+Disallow: /404.html
+Disallow: /500.html
+
+# Block Query Parameters (Avoid Duplicate Content)
+Disallow: /*?id=
+Disallow: /*?mode=
+Disallow: /*?category=
+Disallow: /*?utm_
+Disallow: /*?ref=
+Disallow: /*?fbclid=
+
+# ==================== GOOGLE ====================
+User-agent: Googlebot
+Allow: /
+Allow: /product.html
+Allow: /assets/
+Disallow: /admin/
+Disallow: /checkout.html
+Disallow: /auth.html
+Disallow: /profile.html
+
+User-agent: Googlebot-Image
+Allow: /assets/images/
+Allow: /
+Disallow: /admin/
+
+User-agent: Google-Extended
+Allow: /
+Allow: /product.html
+Allow: /about.html
+Disallow: /admin/
+Disallow: /checkout.html
+
+# ==================== BING ====================
+User-agent: Bingbot
+Allow: /
+Allow: /product.html
+Allow: /assets/
+Disallow: /admin/
+Disallow: /checkout.html
+Disallow: /auth.html
+
+User-agent: Bingbot-Image
+Allow: /assets/images/
+Allow: /
+
+User-agent: msnbot
+Allow: /
+Disallow: /admin/
+
+# ==================== SOCIAL MEDIA CRAWLERS ====================
+User-agent: FacebookExternalHit
+Allow: /
+Allow: /product.html
+Allow: /index.html
+Allow: /about.html
+Allow: /assets/images/
+
+User-agent: Twitterbot
+Allow: /
+Allow: /product.html
+Allow: /index.html
+Allow: /assets/images/
+
+User-agent: Pinterestbot
+Allow: /
+Allow: /product.html
+Allow: /assets/images/
+
+User-agent: LinkedInBot
+Allow: /
+Allow: /product.html
+Allow: /index.html
+Allow: /assets/images/
+
+User-agent: WhatsApp
+Allow: /
+Allow: /product.html
+Allow: /index.html
+Allow: /assets/images/
+
+User-agent: TelegramBot
+Allow: /
+Allow: /product.html
+Allow: /index.html
+Allow: /assets/images/
+
+User-agent: Discordbot
+Allow: /
+Allow: /product.html
+Allow: /index.html
+Allow: /assets/images/
+
+User-agent: Slackbot
+Allow: /
+Allow: /product.html
+Allow: /index.html
+Allow: /assets/images/
+
+# ==================== AI CRAWLERS ====================
+User-agent: GPTBot
+Allow: /
+Allow: /product.html
+Allow: /about.html
+Allow: /terms.html
+Allow: /privacy.html
+Disallow: /admin/
+Disallow: /checkout.html
+Disallow: /profile.html
+
+User-agent: ChatGPT-User
+Allow: /
+Allow: /product.html
+Allow: /about.html
+Disallow: /admin/
+Disallow: /checkout.html
+
+User-agent: OAI-SearchBot
+Allow: /
+Allow: /product.html
+Disallow: /admin/
+
+User-agent: anthropic-ai
+Allow: /
+Allow: /product.html
+Allow: /about.html
+Disallow: /admin/
+
+User-agent: ClaudeBot
+Allow: /
+Allow: /product.html
+Disallow: /admin/
+
+User-agent: PerplexityBot
+Allow: /
+Allow: /product.html
+Disallow: /admin/
+
+User-agent: Bytespider
+Allow: /
+Allow: /product.html
+Disallow: /admin/
+
+User-agent: CCBot
+Allow: /
+Allow: /product.html
+Disallow: /admin/
+
+User-agent: cohere-ai
+Allow: /
+Allow: /product.html
+Disallow: /admin/
+
+# ==================== BAD BOTS (Block) ====================
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+User-agent: PetalBot
+Disallow: /
+
+User-agent: BLEXBot
+Disallow: /
+
+User-agent: DataForSeoBot
+Disallow: /
+
+# ==================== SITEMAP ====================
+Sitemap: https://novahubgadgets.com/sitemap.xml

@@ -1,0 +1,292 @@
+/* ============================================================
+   NOVAHUB — Auth Page Styles (Google-Only)
+   Domain: novahubgadgets.com
+   ============================================================ */
+
+.auth-page {
+    background: linear-gradient(135deg, #F5F5F5 0%, #FFFFFF 100%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ===== HEADER COMPACT ===== */
+.header-compact .header-title {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--white);
+    letter-spacing: 2px;
+    margin: 0;
+}
+
+.header-home-btn {
+    color: var(--white);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    transition: all 0.25s ease;
+    text-decoration: none;
+}
+
+.header-home-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--red);
+    transform: scale(1.05);
+}
+
+/* ===== WRAPPER ===== */
+.auth-wrapper {
+    flex: 1;
+    width: 100%;
+    max-width: 440px;
+    margin: 0 auto;
+    padding: 40px 24px 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ===== LOGO ===== */
+.auth-logo-wrap {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.auth-logo {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid var(--red);
+    margin: 0 auto;
+    box-shadow: 0 10px 30px rgba(227, 30, 36, 0.18);
+    background: var(--white);
+    animation: logoPulse 3s ease-in-out infinite;
+}
+
+@keyframes logoPulse {
+    0%, 100% { 
+        box-shadow: 0 10px 30px rgba(227, 30, 36, 0.18);
+        transform: scale(1);
+    }
+    50% { 
+        box-shadow: 0 15px 40px rgba(227, 30, 36, 0.28);
+        transform: scale(1.02);
+    }
+}
+
+/* ===== WELCOME TEXT ===== */
+.auth-welcome {
+    text-align: center;
+    margin-bottom: 32px;
+}
+
+.auth-title {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--black);
+    margin-bottom: 8px;
+    letter-spacing: -0.02em;
+    line-height: 1.3;
+}
+
+.auth-subtitle {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    letter-spacing: 0.5px;
+}
+
+/* ===== GOOGLE BUTTON ===== */
+.auth-google-wrap {
+    width: 100%;
+    margin-bottom: 24px;
+}
+
+.google-signin-btn {
+    width: 100%;
+    padding: 16px 24px;
+    background: var(--white);
+    color: var(--black);
+    border: 2px solid #E0E0E0;
+    border-radius: 14px;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: inherit;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+    position: relative;
+    overflow: hidden;
+}
+
+.google-signin-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(227, 30, 36, 0.05), transparent);
+    transition: left 0.5s ease;
+}
+
+.google-signin-btn:hover:not(:disabled) {
+    border-color: var(--red);
+    transform: translateY(-3px);
+    box-shadow: 0 10px 28px rgba(227, 30, 36, 0.18);
+}
+
+.google-signin-btn:hover:not(:disabled)::before {
+    left: 100%;
+}
+
+.google-signin-btn:active:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 16px rgba(227, 30, 36, 0.15);
+}
+
+.google-signin-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.google-icon {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+}
+
+.google-signin-btn span {
+    flex: 1;
+    text-align: center;
+    padding-right: 22px;
+}
+
+.google-signin-btn .fa-spinner {
+    font-size: 16px;
+    color: var(--red);
+}
+
+/* ===== INFO NOTE ===== */
+.auth-info-note {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px;
+    background: rgba(22, 163, 74, 0.06);
+    border: 1px solid rgba(22, 163, 74, 0.15);
+    border-radius: 12px;
+    margin-bottom: 24px;
+    width: 100%;
+}
+
+.auth-info-note i {
+    color: #16A34A;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.auth-info-note p {
+    font-size: 13px;
+    color: #15803D;
+    font-weight: 600;
+    margin: 0;
+    letter-spacing: 0.2px;
+}
+
+/* ===== TERMS NOTE ===== */
+.auth-terms-note {
+    text-align: center;
+    padding: 0 10px;
+    width: 100%;
+}
+
+.auth-terms-note p {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    line-height: 1.7;
+    margin: 0;
+}
+
+.auth-terms-note a {
+    color: var(--red);
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.auth-terms-note a:hover {
+    text-decoration: underline;
+    color: var(--red-dark);
+}
+
+/* ===== FOOTER ===== */
+.auth-footer {
+    text-align: center;
+    padding: 20px;
+    font-size: 12px;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 480px) {
+    .auth-wrapper { padding: 30px 18px 30px; }
+    .auth-logo { width: 84px; height: 84px; }
+    .auth-title { font-size: 1.35rem; }
+    .auth-subtitle { font-size: 0.88rem; }
+    .google-signin-btn { padding: 15px 20px; font-size: 14px; gap: 10px; }
+    .google-icon { width: 20px; height: 20px; }
+    .google-signin-btn span { padding-right: 20px; }
+    .auth-info-note { padding: 10px 14px; }
+    .auth-info-note p { font-size: 12px; }
+    .auth-terms-note p { font-size: 12px; }
+}
+
+/* ============================================================
+   HEADER PROFILE ICON — Red Border (Auth Page)
+   ============================================================ */
+#headerProfileBtn {
+    border: 2px solid var(--red);
+    border-radius: 50%;
+    overflow: hidden;
+    padding: 2px;
+    box-sizing: border-box;
+    background: rgba(255, 255, 255, 0.05);
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#headerProfileBtn img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    display: block;
+}
+
+#headerProfileBtn i {
+    color: var(--white);
+    font-size: 18px;
+}
+
+#headerProfileBtn:hover {
+    background: rgba(227, 30, 36, 0.15);
+    border-color: var(--red-light);
+    transform: scale(1.05);
+}

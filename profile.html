@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    
+    <title>My Profile – Novahub | Manage Your Account</title>
+    <meta name="title" content="My Profile – Novahub">
+    <meta name="description" content="Manage your Novahub profile, orders and account settings.">
+    <meta name="author" content="Novahub">
+    
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="googlebot" content="noindex, nofollow">
+    
+    <link rel="canonical" href="https://novahubgadgets.com/profile.html">
+    
+    <link rel="icon" type="image/jpeg" href="assets/images/logo.jpg">
+    <link rel="apple-touch-icon" href="assets/images/logo.jpg">
+    
+    <meta name="theme-color" content="#0A0A0A">
+    
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Novahub">
+    <meta property="og:url" content="https://novahubgadgets.com/profile.html">
+    <meta property="og:title" content="My Profile – Novahub">
+    <meta property="og:description" content="Manage your Novahub account.">
+    <meta property="og:image" content="https://novahubgadgets.com/assets/images/logo.jpg">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="dns-prefetch" href="https://oxnfiueqmvggtjtciqbn.supabase.co">
+    <link rel="dns-prefetch" href="https://res.cloudinary.com">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="assets/css/style.css?v=3">
+    <link rel="stylesheet" href="assets/css/profile.css?v=3">
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+    <!-- ===== HEADER ===== -->
+    <header class="sticky-header header-compact">
+        <div class="header-left">
+            <button class="menu-toggle-btn" onclick="window.location.href='index.html'" aria-label="Back">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+        </div>
+        <div class="header-center">
+            <h1 class="header-title">My Profile</h1>
+        </div>
+        <div class="header-right">
+            <button class="header-home-btn" onclick="handleLogout()" aria-label="Logout">
+                <i class="fas fa-sign-out-alt"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- ===== MAIN ===== -->
+    <main class="container profile-container" id="profileContainer">
+        <div class="loading-state">
+            <div class="loading-spinner"></div>
+            <p>Loading profile...</p>
+        </div>
+    </main>
+
+    <!-- ===== PHOTO UPLOAD INPUT (Hidden) ===== -->
+    <input type="file" id="profilePhotoInput" accept="image/*" class="hidden-file-input">
+
+    <!-- ===== TOAST ===== -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- ===== SCRIPTS ===== -->
+    <script src="assets/js/supabase-config.js?v=3"></script>
+    <script src="assets/js/location-data.js?v=3"></script>
+    <script src="assets/js/auth.js?v=3"></script>
+    <script src="assets/js/profile.js?v=3"></script>
+</body>
+</html>

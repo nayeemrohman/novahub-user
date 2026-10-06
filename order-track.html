@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    
+    <!-- ==================== PRIMARY SEO ==================== -->
+    <title>Track Your Order – Novahub | Order Status Check Bangladesh</title>
+    <meta name="title" content="Track Your Order – Novahub">
+    <meta name="description" content="Track your Novahub order easily. Enter your Order ID to see real-time status of your shipment across Bangladesh. Fast delivery with Cash on Delivery.">
+    <meta name="keywords" content="Novahub Order Track, Track Order BD, Order Status Check, Order Tracking Bangladesh, Novahub Delivery Status, Online Order Track">
+    <meta name="author" content="Novahub">
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+    <meta name="googlebot" content="index, follow">
+    <meta name="language" content="English">
+    
+    <!-- ==================== CANONICAL ==================== -->
+    <link rel="canonical" href="https://novahubgadgets.com/order-track">
+    
+    <!-- ==================== FAVICON ==================== -->
+    <link rel="icon" type="image/jpeg" href="assets/images/logo.jpg">
+    <link rel="apple-touch-icon" href="assets/images/logo.jpg">
+    <link rel="icon" type="image/jpeg" sizes="32x32" href="assets/images/logo.jpg">
+    <link rel="icon" type="image/jpeg" sizes="16x16" href="assets/images/logo.jpg">
+    
+    <!-- ==================== THEME ==================== -->
+    <meta name="theme-color" content="#0A0A0A">
+    <meta name="msapplication-TileColor" content="#0A0A0A">
+    
+    <!-- ==================== OPEN GRAPH ==================== -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Novahub">
+    <meta property="og:url" content="https://novahubgadgets.com/order-track">
+    <meta property="og:title" content="Track Your Order – Novahub">
+    <meta property="og:description" content="Track your Novahub order easily. Enter your Order ID to see real-time status.">
+    <meta property="og:image" content="https://novahubgadgets.com/assets/images/logo.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Track Your Novahub Order">
+    <meta property="og:locale" content="en_US">
+    
+    <!-- ==================== TWITTER ==================== -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@novahub">
+    <meta name="twitter:title" content="Track Your Order – Novahub">
+    <meta name="twitter:description" content="Track your Novahub order in real-time.">
+    <meta name="twitter:image" content="https://novahubgadgets.com/assets/images/logo.jpg">
+    
+    <!-- ==================== SCHEMA ==================== -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "@id": "https://novahubgadgets.com/order-track#webpage",
+        "url": "https://novahubgadgets.com/order-track",
+        "name": "Track Your Order – Novahub",
+        "description": "Track your Novahub order easily. Enter your Order ID to see the current status of your shipment.",
+        "inLanguage": "en",
+        "isPartOf": {
+            "@type": "WebSite",
+            "@id": "https://novahubgadgets.com/#website",
+            "url": "https://novahubgadgets.com/",
+            "name": "Novahub"
+        },
+        "publisher": {
+            "@type": "Organization",
+            "@id": "https://novahubgadgets.com/#organization",
+            "name": "Novahub",
+            "logo": {
+                "@type": "ImageObject",
+                "url": "https://novahubgadgets.com/assets/images/logo.jpg"
+            }
+        }
+    }
+    </script>
+    
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://novahubgadgets.com/" },
+            { "@type": "ListItem", "position": 2, "name": "Order Track", "item": "https://novahubgadgets.com/order-track" }
+        ]
+    }
+    </script>
+    
+    <!-- ==================== PRECONNECT ==================== -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="dns-prefetch" href="https://oxnfiueqmvggtjtciqbn.supabase.co">
+    
+    <!-- ==================== STYLES ==================== -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="assets/css/style.css?v=3">
+    <link rel="stylesheet" href="assets/css/order-track.css?v=3">
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="order-track-page">
+
+    <!-- ==================== HEADER ==================== -->
+    <header class="sticky-header header-compact">
+        <div class="header-left">
+            <button class="menu-toggle-btn" id="headerProfileBtn" onclick="handleProfileClick()" aria-label="Profile">
+                <i class="fas fa-user" id="headerProfileIcon"></i>
+            </button>
+        </div>
+        <div class="header-center">
+            <h1 class="header-title">NOVA<span class="brand-red">HUB</span></h1>
+        </div>
+        <div class="header-right">
+            <button class="cart-icon-container" id="headerCartBtn" onclick="openCartSidebar()" aria-label="Cart">
+                <i class="fas fa-shopping-cart cart-icon"></i>
+                <span id="cartCount" class="cart-count">0</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- ==================== MAIN ==================== -->
+    <main class="container order-track-container">
+        
+        <!-- ==================== TRACK SECTION ==================== -->
+        <div class="track-card" id="trackCard">
+            
+            <div class="track-hero-icon">
+                <i class="fas fa-truck-fast"></i>
+            </div>
+            
+            <h2>Track Your Order</h2>
+            <p class="track-hero-sub">Enter your Order ID to see real-time status</p>
+            
+            <!-- ==================== GUIDE BOX ==================== -->
+            <div class="track-guide-box">
+                <div class="track-guide-title">
+                    <i class="fas fa-info-circle"></i>
+                    <span>কীভাবে অর্ডার ট্র্যাক করবেন</span>
+                </div>
+                <div class="track-guide-steps">
+                    <div class="track-guide-step">
+                        <div class="track-step-num">1</div>
+                        <div class="track-step-text">
+                            <strong>Order ID কপি করুন</strong>
+                            <small>আপনার order confirm SMS বা email থেকে NV-XXXXXX ফরম্যাটের ID কপি করুন</small>
+                        </div>
+                    </div>
+                    <div class="track-guide-step">
+                        <div class="track-step-num">2</div>
+                        <div class="track-step-text">
+                            <strong>নিচের বক্সে পেস্ট করুন</strong>
+                            <small>Order ID পেস্ট করুন (যেমন: NV618181728)</small>
+                        </div>
+                    </div>
+                    <div class="track-guide-step">
+                        <div class="track-step-num">3</div>
+                        <div class="track-step-text">
+                            <strong>Track বাটনে ক্লিক করুন</strong>
+                            <small>আপনার অর্ডারের পূর্ণ ডিটেইলস দেখতে পাবেন</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ==================== TRACK INPUT ==================== -->
+            <div class="track-input-wrapper">
+                <input type="text" id="orderIdInput" placeholder="Order ID (যেমন: NV618181728)" autocomplete="off" spellcheck="false">
+                <button id="trackBtn" onclick="trackOrder()">
+                    <i class="fas fa-search"></i>
+                    <span>Track</span>
+                </button>
+            </div>
+            <small class="track-input-hint">
+                <i class="fas fa-lightbulb"></i> 
+                Order ID না থাকলে WhatsApp করুন: <a href="https://wa.me/8801947939982" target="_blank">01947939982</a>
+            </small>
+        </div>
+        
+        <!-- ==================== LOADING STATE ==================== -->
+        <div id="loadingState" class="state-box" style="display:none;">
+            <div class="loading-spinner"></div>
+            <p>Loading order details...</p>
+        </div>
+        
+        <!-- ==================== NOT FOUND ==================== -->
+        <div id="notFoundState" class="state-box" style="display:none;">
+            <div class="not-found-icon">
+                <i class="fas fa-exclamation-circle"></i>
+            </div>
+            <h3>Order Not Found</h3>
+            <p>Please check your Order ID and try again.</p>
+            <p class="not-found-hint">সঠিক Order ID ব্যবহার করুন বা WhatsApp করুন: <a href="https://wa.me/8801947939982" target="_blank">01947939982</a></p>
+            <button class="btn-try-again" onclick="resetTrack()">
+                <i class="fas fa-redo"></i> Try Again
+            </button>
+        </div>
+        
+        <!-- ==================== ORDER DETAILS ==================== -->
+        <div id="orderDetailsState" style="display:none;">
+            
+            <!-- Back Button -->
+            <button class="track-back-btn" onclick="resetTrack()">
+                <i class="fas fa-arrow-left"></i> Track Another Order
+            </button>
+            
+            <!-- Status Timeline -->
+            <div class="status-timeline" id="statusTimeline"></div>
+            
+            <!-- Order Info -->
+            <div class="order-info-card">
+                <div class="order-info-header">
+                    <div>
+                        <h3>Order Summary</h3>
+                        <p class="order-id-display" id="displayOrderId">NV-000000</p>
+                    </div>
+                    <div class="status-badge" id="displayStatus">Pending</div>
+                </div>
+                
+                <div class="order-info-grid">
+                    <div class="info-item">
+                        <i class="fas fa-user"></i>
+                        <div>
+                            <small>Customer</small>
+                            <strong id="displayName">-</strong>
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-phone"></i>
+                        <div>
+                            <small>Phone</small>
+                            <strong id="displayPhone">-</strong>
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <div>
+                            <small>Delivery Address</small>
+                            <strong id="displayAddress">-</strong>
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-calendar"></i>
+                        <div>
+                            <small>Order Date</small>
+                            <strong id="displayDate">-</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Order Items -->
+            <div class="order-items-card">
+                <h3><i class="fas fa-box"></i> Items</h3>
+                <div id="displayItems"></div>
+            </div>
+            
+            <!-- Summary -->
+            <div class="order-summary-card">
+                <div class="summary-line">
+                    <span>Subtotal</span>
+                    <span id="displaySubtotal">৳0</span>
+                </div>
+                <div class="summary-line">
+                    <span>Delivery Charge</span>
+                    <span id="displayDelivery">৳0</span>
+                </div>
+                <div class="summary-line total">
+                    <span>Total</span>
+                    <span id="displayTotal">৳0</span>
+                </div>
+            </div>
+            
+            <!-- Help Box -->
+            <div class="track-help-box">
+                <i class="fab fa-whatsapp"></i>
+                <div>
+                    <strong>Need Help?</strong>
+                    <p>অর্ডার নিয়ে কোনো প্রশ্ন থাকলে WhatsApp করুন: <a href="https://wa.me/8801947939982" target="_blank">01947939982</a></p>
+                </div>
+            </div>
+            
+        </div>
+        
+    </main>
+
+    <!-- ==================== CART SIDEBAR ==================== -->
+    <div id="cartOverlay" class="cart-overlay"></div>
+    <div id="cartSidebar" class="cart-sidebar">
+        <div class="cart-header">
+            <h2>Your Cart</h2>
+            <button class="cart-close-btn" onclick="closeCartSidebar()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="cart-select-all">
+            <label class="checkbox-label">
+                <input type="checkbox" id="selectAllCheckbox"> Select All
+            </label>
+            <span id="selectedCartCount">0/0</span>
+        </div>
+        <div class="cart-items" id="cartItems">
+            <p class="empty-cart">Your cart is empty</p>
+        </div>
+        <div class="cart-footer">
+            <div class="cart-total">
+                <span>Subtotal:</span>
+                <span id="cartSubtotal">৳0</span>
+            </div>
+            <button class="checkout-btn" id="checkoutBtn" onclick="goToCheckout()">
+                Checkout (<span id="selectedCount">0</span>)
+            </button>
+        </div>
+    </div>
+
+    <!-- ==================== TOAST ==================== -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- ==================== SCRIPTS ==================== -->
+    <script src="assets/js/supabase-config.js?v=3"></script>
+    <script src="assets/js/location-data.js?v=3"></script>
+    <script src="assets/js/auth.js?v=3"></script>
+    <script src="assets/js/cart-shared.js?v=3"></script>
+    <script src="assets/js/order-track.js?v=3"></script>
+</body>
+</html>

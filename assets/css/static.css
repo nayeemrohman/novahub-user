@@ -1,0 +1,260 @@
+/* ============================================================
+   NOVAHUB — Static Pages (About / Terms / Privacy)
+   Simple clean text-based design
+   ============================================================ */
+
+.static-page {
+    background: var(--bg-main);
+    min-height: 100vh;
+}
+
+/* ===== HEADER COMPACT ===== */
+.header-compact .header-title {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--white);
+    letter-spacing: 2px;
+    margin: 0;
+}
+
+.header-home-btn {
+    color: var(--white);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    transition: all 0.25s ease;
+    text-decoration: none;
+}
+
+.header-home-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--red);
+    transform: scale(1.05);
+}
+
+#headerProfileBtn img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+#headerProfileBtn {
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ===== MAIN WRAPPER ===== */
+.static-wrapper {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 40px 20px 60px;
+}
+
+.static-content {
+    background: var(--white);
+    border-radius: 16px;
+    padding: 40px 32px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--border-light);
+}
+
+/* ===== TITLE ===== */
+.static-main-title {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--black);
+    margin-bottom: 8px;
+    letter-spacing: -0.02em;
+    line-height: 1.3;
+}
+
+.static-updated {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-light);
+    font-style: italic;
+}
+
+/* ===== TEXT CONTENT ===== */
+.static-text {
+    font-size: 0.98rem;
+    line-height: 1.85;
+    color: var(--text-secondary);
+}
+
+.static-text p {
+    margin-bottom: 18px;
+}
+
+.static-text p:last-child {
+    margin-bottom: 0;
+}
+
+.static-text h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--black);
+    margin-top: 28px;
+    margin-bottom: 12px;
+    letter-spacing: -0.01em;
+}
+
+.static-text h3:first-child {
+    margin-top: 0;
+}
+
+.static-text ul {
+    list-style: none;
+    padding-left: 0;
+    margin: 16px 0 20px;
+}
+
+.static-text ul li {
+    position: relative;
+    padding-left: 22px;
+    margin-bottom: 12px;
+    line-height: 1.7;
+}
+
+.static-text ul li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 12px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--red);
+}
+
+.static-tagline {
+    margin-top: 28px !important;
+    padding: 16px 20px;
+    background: rgba(227, 30, 36, 0.05);
+    border-left: 4px solid var(--red);
+    border-radius: 8px;
+    font-weight: 700;
+    color: var(--black);
+    font-size: 1rem;
+    letter-spacing: 0.3px;
+}
+
+.static-footer-note {
+    margin-top: 24px !important;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-light);
+    font-size: 0.92rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 600px) {
+    .static-wrapper {
+        padding: 24px 14px 40px;
+    }
+    
+    .static-content {
+        padding: 28px 20px;
+        border-radius: 12px;
+    }
+    
+    .static-main-title {
+        font-size: 1.4rem;
+    }
+    
+    .static-updated {
+        font-size: 0.78rem;
+        margin-bottom: 22px;
+        padding-bottom: 16px;
+    }
+    
+    .static-text {
+        font-size: 0.92rem;
+        line-height: 1.75;
+    }
+    
+    .static-text p {
+        margin-bottom: 16px;
+    }
+    
+    .static-text h3 {
+        font-size: 1rem;
+        margin-top: 22px;
+        margin-bottom: 10px;
+    }
+    
+    .static-text ul li {
+        padding-left: 20px;
+        margin-bottom: 10px;
+    }
+    
+    .static-text ul li::before {
+        top: 10px;
+        width: 5px;
+        height: 5px;
+    }
+    
+    .static-tagline {
+        font-size: 0.92rem;
+        padding: 14px 16px;
+    }
+}
+
+/* ===== FOOTER SPACING ===== */
+.static-page .footer {
+    margin-top: 40px;
+}
+
+@media (max-width: 600px) {
+    .static-page .footer {
+        margin-top: 24px;
+    }
+}
+
+/* ============================================================
+   HEADER PROFILE ICON — Red Border
+   ============================================================ */
+#headerProfileBtn {
+    border: 2px solid var(--red);
+    border-radius: 50%;
+    overflow: hidden;
+    padding: 2px;
+    box-sizing: border-box;
+    background: rgba(255, 255, 255, 0.05);
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#headerProfileBtn img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    display: block;
+}
+
+#headerProfileBtn i {
+    color: var(--white);
+    font-size: 18px;
+}
+
+#headerProfileBtn:hover {
+    background: rgba(227, 30, 36, 0.15);
+    border-color: var(--red-light);
+    transform: scale(1.05);
+}

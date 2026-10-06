@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    
+    <title>404 – Page Not Found | Novahub</title>
+    <meta name="title" content="404 – Page Not Found | Novahub">
+    <meta name="description" content="The page you're looking for doesn't exist or has been moved. Return to Novahub homepage to continue shopping premium gadget accessories.">
+    <meta name="author" content="Novahub">
+    
+    <meta name="robots" content="noindex, follow">
+    <meta name="googlebot" content="noindex, follow">
+    
+    <link rel="canonical" href="https://novahubgadgets.com/404.html">
+    
+    <link rel="icon" type="image/jpeg" href="assets/images/logo.jpg">
+    <link rel="apple-touch-icon" href="assets/images/logo.jpg">
+    
+    <meta name="theme-color" content="#0A0A0A">
+    <meta name="msapplication-TileColor" content="#0A0A0A">
+    
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Novahub">
+    <meta property="og:url" content="https://novahubgadgets.com/404.html">
+    <meta property="og:title" content="404 – Page Not Found | Novahub">
+    <meta property="og:description" content="The page you're looking for doesn't exist.">
+    <meta property="og:image" content="https://novahubgadgets.com/assets/images/logo.jpg">
+    <meta property="og:locale" content="en_US">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { -webkit-text-size-adjust: 100%; }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #F5F5F5;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        .error-container {
+            background: #FFFFFF;
+            border-radius: 20px;
+            padding: 50px 30px;
+            text-align: center;
+            max-width: 440px;
+            width: 100%;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+            border: 1px solid #E5E5E5;
+            animation: fadeInUp 0.5s ease;
+        }
+        
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .error-code {
+            font-size: 84px;
+            font-weight: 900;
+            color: #0A0A0A;
+            line-height: 1;
+            letter-spacing: -4px;
+        }
+        
+        .error-code span { color: #E31E24; }
+        
+        .error-icon {
+            font-size: 48px;
+            color: #E31E24;
+            margin: 14px 0;
+            animation: shake 2s infinite;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: rotate(0); }
+            25% { transform: rotate(-5deg); }
+            75% { transform: rotate(5deg); }
+        }
+        
+        .error-container h1 {
+            font-size: 22px;
+            color: #0A0A0A;
+            margin-bottom: 8px;
+            font-weight: 800;
+        }
+        
+        .error-container p {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+        
+        .error-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .error-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 13px 30px;
+            background: #0A0A0A;
+            color: #FFFFFF;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            border: 2px solid #0A0A0A;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        
+        .error-btn:hover {
+            background: #E31E24;
+            border-color: #E31E24;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(227,30,36,0.3);
+        }
+        
+        .error-btn.secondary {
+            background: #FFFFFF;
+            color: #0A0A0A;
+            border-color: #E5E5E5;
+        }
+        
+        .error-btn.secondary:hover {
+            background: #0A0A0A;
+            color: #FFFFFF;
+            border-color: #0A0A0A;
+        }
+        
+        .error-brand {
+            margin-top: 30px;
+            padding-top: 24px;
+            border-top: 1px solid #E5E5E5;
+            font-size: 12px;
+            color: #888;
+        }
+        
+        .error-brand strong {
+            color: #0A0A0A;
+            font-weight: 800;
+            letter-spacing: 1px;
+        }
+        
+        .error-brand .red { color: #E31E24; }
+        
+        @media (max-width: 480px) {
+            .error-container { padding: 40px 24px; }
+            .error-code { font-size: 72px; }
+            .error-icon { font-size: 40px; }
+            .error-container h1 { font-size: 20px; }
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="error-container">
+        <div class="error-code">4<span>0</span>4</div>
+        <div class="error-icon"><i class="fas fa-search"></i></div>
+        <h1>Page Not Found</h1>
+        <p>Oops! The page you're looking for doesn't exist or has been moved. Let's get you back on track.</p>
+        
+        <div class="error-actions">
+            <a href="index.html" class="error-btn">
+                <i class="fas fa-home"></i> Go Home
+            </a>
+            <a href="order-track.html" class="error-btn secondary">
+                <i class="fas fa-search"></i> Track Order
+            </a>
+        </div>
+        
+        <div class="error-brand">
+            &copy; 2026 <strong>NOVA<span class="red">HUB</span></strong> — Your Gadget Destination
+        </div>
+    </div>
+    
+</body>
+</html>

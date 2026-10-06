@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    
+    <!-- ==================== SEO ==================== -->
+    <title>Sign In – NovaHub Gadgets | Access Your Account</title>
+    <meta name="title" content="Sign In – NovaHub Gadgets">
+    <meta name="description" content="Sign in to your NovaHub Gadgets account with Google. Shop premium gadget accessories with secure checkout and fast delivery in Bangladesh.">
+    <meta name="author" content="NovaHub Gadgets">
+    
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="googlebot" content="noindex, nofollow">
+    
+    <link rel="canonical" href="https://novahubgadgets.com/auth">
+    
+    <link rel="icon" type="image/jpeg" href="assets/images/logo.jpg">
+    <link rel="apple-touch-icon" href="assets/images/logo.jpg">
+    
+    <meta name="theme-color" content="#0A0A0A">
+    
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="NovaHub Gadgets">
+    <meta property="og:url" content="https://novahubgadgets.com/auth">
+    <meta property="og:title" content="Sign In – NovaHub Gadgets">
+    <meta property="og:description" content="Sign in with Google to your NovaHub Gadgets account.">
+    <meta property="og:image" content="https://novahubgadgets.com/assets/images/logo.jpg">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="dns-prefetch" href="https://oxnfiueqmvggtjtciqbn.supabase.co">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="assets/css/style.css?v=3">
+    <link rel="stylesheet" href="assets/css/auth.css?v=3">
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="auth-page">
+
+    <header class="sticky-header header-compact">
+        <div class="header-left">
+            <button class="menu-toggle-btn" onclick="goBackFromAuth()" aria-label="Back">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+        </div>
+        <div class="header-center">
+            <h1 class="header-title">NOVA<span class="brand-red">HUB</span></h1>
+        </div>
+        <div class="header-right">
+            <a href="index.html" class="header-home-btn" aria-label="Home">
+                <i class="fas fa-home"></i>
+            </a>
+        </div>
+    </header>
+
+    <main class="auth-wrapper">
+        
+        <div class="auth-logo-wrap">
+            <img src="assets/images/logo.jpg" alt="NovaHub Gadgets Logo" class="auth-logo">
+        </div>
+        
+        <div class="auth-welcome">
+            <h2 class="auth-title">Welcome to <span class="brand-red">NOVAHUB</span></h2>
+            <p class="auth-subtitle">Your Gadget Destination</p>
+        </div>
+        
+        <div class="auth-google-wrap">
+            <button type="button" class="google-signin-btn" id="googleSignInBtn" onclick="handleGoogleSignIn()">
+                <svg class="google-icon" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                </svg>
+                <span id="googleBtnText">Continue with Google</span>
+                <i class="fas fa-spinner fa-spin" id="googleBtnSpinner" style="display:none;"></i>
+            </button>
+        </div>
+        
+        <div class="auth-info-note">
+            <i class="fas fa-shield-alt"></i>
+            <p>Fast, secure & password-free login</p>
+        </div>
+        
+        <div class="auth-terms-note">
+            <p>
+                By continuing, you agree to our 
+                <a href="terms.html">Terms & Conditions</a> 
+                and 
+                <a href="privacy.html">Privacy Policy</a>
+            </p>
+        </div>
+        
+    </main>
+
+    <div class="auth-footer">
+        &copy; 2026 <span class="brand-red">NOVAHUB</span> &bull; All Rights Reserved
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- ==================== SCRIPTS ==================== -->
+    <script src="assets/js/supabase-config.js?v=3"></script>
+    <script src="assets/js/location-data.js?v=3"></script>
+    <script src="assets/js/auth.js?v=3"></script>
+    <script src="assets/js/auth-page.js?v=3"></script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+# ============================================
+# NOVAHUB USER PANEL — Git Ignore
+# ============================================
+
+# Environment
+.env
+.env.local
+
+# Backup files
+*.backup
+*.bak
+*.bak2
+*.bak-final
+*.bak-delivery
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Node
+node_modules/
+
+# Build
+.vercel/
+dist/
+build/

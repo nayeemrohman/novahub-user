@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    
+    <title>Complete Profile – Novahub</title>
+    <meta name="description" content="Complete your Novahub profile to start shopping.">
+    <meta name="author" content="Novahub">
+    
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="googlebot" content="noindex, nofollow">
+    
+    <link rel="icon" type="image/jpeg" href="assets/images/logo.jpg">
+    <link rel="apple-touch-icon" href="assets/images/logo.jpg">
+    
+    <meta name="theme-color" content="#0A0A0A">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="dns-prefetch" href="https://oxnfiueqmvggtjtciqbn.supabase.co">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="assets/css/style.css?v=3">
+    <link rel="stylesheet" href="assets/css/profile-complete.css?v=3">
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="profile-complete-page">
+
+    <header class="sticky-header header-compact">
+        <div class="header-left">
+            <button class="menu-toggle-btn" onclick="skipProfileComplete()" aria-label="Skip">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+        </div>
+        <div class="header-center">
+            <h1 class="header-title">NOVA<span class="brand-red">HUB</span></h1>
+        </div>
+        <div class="header-right">
+            <a href="index.html" class="header-home-btn" aria-label="Home">
+                <i class="fas fa-home"></i>
+            </a>
+        </div>
+    </header>
+
+    <main class="profile-complete-wrapper">
+        
+        <div id="loadingState" class="pc-loading">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Loading your profile...</p>
+        </div>
+        
+        <div id="mainContent" style="display:none;">
+            
+            <div class="pc-user-card">
+                <div class="pc-avatar-wrap">
+                    <img id="userPhoto" src="assets/images/logo.jpg" alt="Profile" class="pc-avatar">
+                    <div class="pc-google-badge">
+                        <i class="fab fa-google"></i>
+                    </div>
+                </div>
+                
+                <h1 class="pc-welcome">
+                    Welcome, <span id="userName" class="brand-red">User</span>! 👋
+                </h1>
+                <p class="pc-email" id="userEmail">user@gmail.com</p>
+                
+                <div class="pc-info-note">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Complete your profile to place orders easily</span>
+                </div>
+            </div>
+            
+            <div class="pc-form-section">
+                <div class="pc-section-header">
+                    <h2><i class="fas fa-user-edit"></i> Complete Your Profile</h2>
+                    <p>শুধু প্রয়োজনীয় তথ্য পূরণ করুন</p>
+                </div>
+                
+                <form id="profileCompleteForm" onsubmit="event.preventDefault(); submitProfile();">
+                    
+                    <div class="pc-field">
+                        <label for="pcPhone">
+                            <i class="fas fa-phone"></i> Phone Number *
+                        </label>
+                        <input 
+                            type="tel" 
+                            id="pcPhone" 
+                            placeholder="01XXXXXXXXX" 
+                            autocomplete="tel"
+                            maxlength="11"
+                            required>
+                        <small class="pc-error" id="pcPhoneError"></small>
+                    </div>
+                    
+                    <div class="pc-field">
+                        <label for="pcDivision">
+                            <i class="fas fa-map"></i> Division *
+                        </label>
+                        <select id="pcDivision" required>
+                            <option value="">Select Division</option>
+                        </select>
+                        <small class="pc-error" id="pcDivisionError"></small>
+                    </div>
+                    
+                    <div class="pc-field">
+                        <label for="pcDistrict">
+                            <i class="fas fa-city"></i> District *
+                        </label>
+                        <select id="pcDistrict" required disabled>
+                            <option value="">Select District</option>
+                        </select>
+                        <small class="pc-error" id="pcDistrictError"></small>
+                    </div>
+                    
+                    <div class="pc-field">
+                        <label for="pcUpazila">
+                            <i class="fas fa-building"></i> Thana / Upazila *
+                        </label>
+                        <select id="pcUpazila" required disabled>
+                            <option value="">Select Upazila</option>
+                        </select>
+                        <small class="pc-error" id="pcUpazilaError"></small>
+                    </div>
+                    
+                    <div class="pc-field">
+                        <label for="pcVillage">
+                            <i class="fas fa-home"></i> Village / Area *
+                        </label>
+                        <input 
+                            type="text" 
+                            id="pcVillage" 
+                            placeholder="Village or Area name" 
+                            required>
+                        <small class="pc-error" id="pcVillageError"></small>
+                    </div>
+                    
+                    <div class="pc-field">
+                        <label for="pcFullAddress">
+                            <i class="fas fa-location-dot"></i> Full Address 
+                            <span class="optional-tag">Optional</span>
+                        </label>
+                        <textarea 
+                            id="pcFullAddress" 
+                            rows="2" 
+                            placeholder="House, Road, Landmark"></textarea>
+                    </div>
+                    
+                    <button type="submit" class="pc-submit-btn" id="pcSubmitBtn">
+                        <span>
+                            <i class="fas fa-check-circle"></i>
+                            Complete Profile
+                        </span>
+                        <i class="fas fa-spinner fa-spin" id="pcSubmitSpinner" style="display:none;"></i>
+                    </button>
+                    
+                    <button type="button" class="pc-skip-btn" onclick="skipProfileComplete()">
+                        <i class="fas fa-forward"></i>
+                        Skip for now
+                    </button>
+                    
+                </form>
+            </div>
+            
+        </div>
+        
+    </main>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="assets/js/supabase-config.js?v=3"></script>
+    <script src="assets/js/location-data.js?v=3"></script>
+    <script src="assets/js/auth.js?v=3"></script>
+    <script src="assets/js/profile-complete.js?v=3"></script>
+</body>
+</html>
