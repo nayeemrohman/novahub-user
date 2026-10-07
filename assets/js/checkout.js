@@ -1,5 +1,6 @@
 // ============================================================
-// NOVAHUB — Checkout Script (v5 — Fixed)
+// NOVAHUB — Checkout Script (v6 — CAPI Integration)
+// - Pixel + Conversion API on Purchase
 // - Parallel stock validation
 // - Fixed currency prefix
 // - Better error handling
@@ -64,6 +65,7 @@ async function loadSettings() {
         
         if (data) {
             window.settings = {
+                ...window.settings,
                 shopName: data.shop_name || 'Novahub',
                 currency: data.currency || '৳',
                 orderPrefix: data.order_prefix || 'NV',
@@ -125,11 +127,9 @@ function renderDropdownList(listId, items, type) {
     }
     
     listEl.innerHTML = items.map(item => {
-        // Use data attributes instead of inline onclick for safety
         return `<div class="dropdown-item" data-value="${escapeHtml(item)}" data-type="${type}">${escapeHtml(item)}</div>`;
     }).join('');
     
-    // Attach event listeners
     listEl.querySelectorAll('.dropdown-item:not(.no-result)').forEach(el => {
         el.addEventListener('click', () => {
             selectDropdownItem(el.dataset.type, el.dataset.value);
@@ -371,7 +371,7 @@ async function prefillUserInfo() {
         if (el) el.value = profile.full_address;
     }
     
-    // Prefill location without triggering auto-select
+    // Prefill location
     if (profile.division && LOCATION_DATA.bangladesh.levels[profile.division]) {
         selectedDivision = profile.division;
         document.getElementById('division').value = profile.division;
@@ -399,7 +399,6 @@ async function prefillUserInfo() {
                 document.getElementById('upazilaSearch').readOnly = true;
             }
             
-            // Now auto-select delivery area
             autoSelectDeliveryArea(profile.district);
         }
     }
@@ -453,7 +452,6 @@ async function buildCheckoutItems() {
             return selectedKeys.includes(key);
         });
         
-        // Fetch products in parallel
         const productIds = selectedItems.map(i => i.productId);
         if (productIds.length === 0) return;
         
@@ -620,7 +618,7 @@ function clearErrors() {
 }
 
 // ============================================================
-// STOCK VALIDATION (PARALLEL — fixed)
+// STOCK VALIDATION
 // ============================================================
 async function validateStockBeforeOrder() {
     const outOfStockItems = [];
@@ -655,7 +653,7 @@ async function validateStockBeforeOrder() {
 }
 
 // ============================================================
-// PLACE ORDER
+// PLACE ORDER — with Pixel + CAPI
 // ============================================================
 async function placeOrder(event) {
     if (event) event.preventDefault();
@@ -744,8 +742,16 @@ async function placeOrder(event) {
         // Fire webhook (non-blocking)
         sendWebhookNotification(orderData).catch(err => console.error('Webhook failed:', err));
         
+        // ===== ✅ Pixel + Conversion API: Track Purchase =====
         if (typeof window.trackPurchase === 'function') {
-            window.trackPurchase(orderId, checkoutItems, total);
+            window.trackPurchase(orderId, checkoutItems, total, {
+                email: orderData.email,
+                phone: orderData.phone,
+                full_name: orderData.full_name,
+                district: orderData.district,
+                division: orderData.division,
+                user_id: orderData.user_id
+            });
         }
         
         // Clear cart
@@ -984,4 +990,4 @@ function continueShopping() {
 }
 window.continueShopping = continueShopping;
 
-console.log('✅ Checkout script loaded (v5)');
+console.log('✅ Checkout script loaded (v6 — Pixel + CAPI)');

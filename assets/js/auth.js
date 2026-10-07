@@ -1,7 +1,5 @@
 // ============================================================
-// NOVAHUB — Authentication + SEO Injector Helper (v4)
-// Domain: novahubgadgets.com
-// Used by: ALL pages
+// NOVAHUB — Auth + Pixel + CAPI Helpers (v7)
 // ============================================================
 
 // ============================================================
@@ -15,7 +13,6 @@ async function logoutUser() {
         window.currentUser = null;
         window.currentProfile = null;
         
-        // Clear cart selection on logout
         try {
             localStorage.removeItem('novahub_selected_cart');
         } catch(e) {}
@@ -31,9 +28,7 @@ async function handleLogout() {
     const result = await logoutUser();
     if (result.success) {
         showToast('Logged out successfully', 'success');
-        setTimeout(() => {
-            window.location.href = 'index.html';
-        }, 800);
+        setTimeout(() => window.location.href = 'index.html', 800);
     } else {
         showToast('Logout failed: ' + result.error, 'error');
     }
@@ -62,7 +57,7 @@ async function updateUserProfile(userId, updates) {
 }
 
 // ============================================================
-// UPDATE AUTH UI (Sidebar Profile)
+// UPDATE AUTH UI
 // ============================================================
 async function updateAuthUI() {
     try {
@@ -131,7 +126,6 @@ async function updateAuthUI() {
 try {
     supabaseClient.auth.onAuthStateChange((event, session) => {
         console.log('Auth state changed:', event);
-        // Delay to allow DOM to settle
         setTimeout(() => updateAuthUI(), 100);
     });
 } catch (err) {
@@ -167,10 +161,7 @@ async function syncGoogleProfileData() {
         if (!profile.full_name && googleName) updates.full_name = googleName;
         
         if (Object.keys(updates).length > 0) {
-            await supabaseClient
-                .from('user_profiles')
-                .update(updates)
-                .eq('id', user.id);
+            await supabaseClient.from('user_profiles').update(updates).eq('id', user.id);
             console.log('✅ Synced Google data:', updates);
         }
     } catch (err) {
@@ -188,16 +179,11 @@ async function loadAndInjectSEO() {
         
         const { data: settings, error } = await supabaseClient
             .from('settings')
-            .select('google_verification, facebook_verification, bing_verification, google_analytics_id, meta_pixel_id, meta_pixel_enabled')
+            .select('google_verification, facebook_verification, bing_verification, google_analytics_id')
             .eq('id', 1)
             .single();
         
-        if (error || !settings) {
-            console.log('ℹ️ SEO settings not available');
-            return;
-        }
-        
-        console.log('📊 Injecting SEO tags...');
+        if (error || !settings) return;
         
         if (settings.google_verification && settings.google_verification.trim()) {
             const meta = document.createElement('meta');
@@ -240,47 +226,17 @@ async function loadAndInjectSEO() {
             }
         }
         
-        if (settings.meta_pixel_enabled && settings.meta_pixel_id && settings.meta_pixel_id.trim()) {
-            const pixelId = settings.meta_pixel_id.trim();
-            
-            const pixelScript = document.createElement('script');
-            pixelScript.textContent = 
-                '!function(f,b,e,v,n,t,s)' +
-                '{if(f.fbq)return;n=f.fbq=function(){n.callMethod?' +
-                'n.callMethod.apply(n,arguments):n.queue.push(arguments)};' +
-                'if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version="2.0";' +
-                'n.queue=[];t=b.createElement(e);t.async=!0;' +
-                't.src=v;s=b.getElementsByTagName(e)[0];' +
-                's.parentNode.insertBefore(t,s)}(window, document,"script",' +
-                '"https://connect.facebook.net/en_US/fbevents.js");' +
-                'fbq("init", "' + pixelId + '");' +
-                'fbq("track", "PageView");';
-            document.head.appendChild(pixelScript);
-            
-            const noscript = document.createElement('noscript');
-            const img = document.createElement('img');
-            img.height = 1;
-            img.width = 1;
-            img.style.display = 'none';
-            img.src = 'https://www.facebook.com/tr?id=' + pixelId + '&ev=PageView&noscript=1';
-            noscript.appendChild(img);
-            document.body.appendChild(noscript);
-            
-            window.__pixelId = pixelId;
-            window.__pixelEnabled = true;
-        }
-        
-        console.log('✅ SEO injection complete');
+        console.log('✅ SEO tags injected');
     } catch (err) {
-        console.error('❌ SEO inject error:', err);
+        console.error('SEO inject error:', err);
     }
 }
 
 // ============================================================
-// PIXEL TRACKING HELPERS
+// PIXEL TRACKING — CLIENT SIDE
 // ============================================================
 window.trackViewContent = function(product) {
-    if (!window.__pixelEnabled || typeof fbq !== 'function') return;
+    if (typeof fbq !== 'function') return;
     try {
         fbq('track', 'ViewContent', {
             content_ids: [product.id],
@@ -294,7 +250,7 @@ window.trackViewContent = function(product) {
 
 window.trackAddToCart = function(product, quantity) {
     quantity = quantity || 1;
-    if (!window.__pixelEnabled || typeof fbq !== 'function') return;
+    if (typeof fbq !== 'function') return;
     try {
         fbq('track', 'AddToCart', {
             content_ids: [product.id],
@@ -308,7 +264,7 @@ window.trackAddToCart = function(product, quantity) {
 };
 
 window.trackInitiateCheckout = function(items, total) {
-    if (!window.__pixelEnabled || typeof fbq !== 'function') return;
+    if (typeof fbq !== 'function') return;
     try {
         fbq('track', 'InitiateCheckout', {
             content_ids: items.map(i => i.productId),
@@ -320,23 +276,106 @@ window.trackInitiateCheckout = function(items, total) {
     } catch(e) {}
 };
 
-window.trackPurchase = function(orderId, items, total) {
-    if (!window.__pixelEnabled || typeof fbq !== 'function') return;
-    try {
-        fbq('track', 'Purchase', {
-            content_ids: items.map(i => i.productId),
-            content_type: 'product',
-            num_items: items.reduce((s, i) => s + i.quantity, 0),
-            value: total,
-            currency: 'BDT'
-        }, {
-            eventID: orderId
-        });
-    } catch(e) {}
+// ============================================================
+// TRACK PURCHASE — Pixel + Conversion API
+// ============================================================
+window.trackPurchase = function(orderId, items, total, orderData) {
+    // ===== 1. Browser Pixel =====
+    if (typeof fbq === 'function') {
+        try {
+            fbq('track', 'Purchase', {
+                content_ids: items.map(i => i.productId),
+                content_type: 'product',
+                num_items: items.reduce((s, i) => s + i.quantity, 0),
+                value: total,
+                currency: 'BDT'
+            }, { eventID: orderId });
+            console.log('✅ Pixel Purchase sent:', orderId);
+        } catch(e) {
+            console.warn('Pixel error:', e);
+        }
+    }
+
+    // ===== 2. Conversion API =====
+    sendPurchaseToCAPI(orderId, items, total, orderData).catch(err => {
+        console.warn('CAPI send failed:', err.message);
+    });
 };
 
+async function sendPurchaseToCAPI(orderId, items, total, orderData) {
+    const capiUrl = window.settings?.metaCapiUrl;
+    
+    if (!capiUrl || !capiUrl.trim()) {
+        console.log('ℹ️ CAPI URL not configured');
+        return;
+    }
+
+    const fbc = getCookie('_fbc');
+    const fbp = getCookie('_fbp');
+
+    const user_data = {
+        fbc: fbc || null,
+        fbp: fbp || null,
+        email: orderData?.email || null,
+        phone: orderData?.phone || null,
+        first_name: orderData?.full_name ? orderData.full_name.split(' ')[0] : null,
+        last_name: orderData?.full_name ? orderData.full_name.split(' ').slice(1).join(' ') : null,
+        city: orderData?.district || null,
+        state: orderData?.division || null,
+        country: 'bd',
+        external_id: orderData?.user_id || null
+    };
+
+    const custom_data = {
+        currency: 'BDT',
+        value: total,
+        order_id: orderId,
+        content_type: 'product',
+        content_ids: items.map(i => i.productId),
+        num_items: items.reduce((s, i) => s + i.quantity, 0),
+        contents: items.map(i => ({
+            id: i.productId,
+            quantity: i.quantity,
+            item_price: i.price
+        }))
+    };
+
+    try {
+        const response = await fetch(capiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                event_name: 'Purchase',
+                event_id: orderId,
+                event_source_url: window.location.href,
+                user_data: user_data,
+                custom_data: custom_data
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('CAPI HTTP error: ' + response.status);
+        }
+
+        const result = await response.json();
+        console.log('✅ CAPI Purchase sent:', result);
+    } catch (err) {
+        console.error('❌ CAPI error:', err);
+        throw err;
+    }
+}
+
+function getCookie(name) {
+    try {
+        const match = document.cookie.match(new RegExp('(^|;\\s*)' + name + '=([^;]*)'));
+        return match ? decodeURIComponent(match[2]) : null;
+    } catch(e) {
+        return null;
+    }
+}
+
 // ============================================================
-// AUTO BOOT SEO INJECTOR
+// AUTO BOOT
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(loadAndInjectSEO, 300);
@@ -352,4 +391,4 @@ window.updateAuthUI = updateAuthUI;
 window.syncGoogleProfileData = syncGoogleProfileData;
 window.loadAndInjectSEO = loadAndInjectSEO;
 
-console.log('✅ Auth + SEO Injector loaded (v4)');
+console.log('✅ Auth + Pixel + CAPI loaded (v7)');

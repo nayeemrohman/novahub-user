@@ -1,7 +1,6 @@
 // ============================================================
-// NOVAHUB — Supabase Configuration (v4)
+// NOVAHUB — Supabase Configuration (v5)
 // Domain: novahubgadgets.com
-// WhatsApp: 01947939982
 // ============================================================
 
 const SUPABASE_URL = 'https://oxnfiueqmvggtjtciqbn.supabase.co';
@@ -20,7 +19,12 @@ window.settings = {
     whatsappNumber: '01947939982',
     insideDhakaCharge: 60,
     outsideDhakaCharge: 120,
-    footerDescription: 'Premium Gadgets & Electronics Store in Bangladesh. Latest tech at best prices.'
+    footerDescription: 'Premium Gadgets & Electronics Store in Bangladesh. Latest tech at best prices.',
+    
+    // ===== META PIXEL + CAPI (Hardcoded) =====
+    metaPixelId: '1072007485675742',
+    metaPixelEnabled: true,
+    metaCapiUrl: '/api/meta-capi'
 };
 
 // ==================== USER HELPERS ====================
@@ -82,6 +86,7 @@ async function loadSettings() {
         
         if (data) {
             window.settings = {
+                ...window.settings,
                 shopName: data.shop_name || 'Novahub',
                 logoURL: data.logo_url || 'assets/images/logo.jpg',
                 currency: data.currency || '৳',
@@ -92,9 +97,8 @@ async function loadSettings() {
                 insideDhakaCharge: data.inside_dhaka_charge || 60,
                 outsideDhakaCharge: data.outside_dhaka_charge || 120,
                 footerDescription: data.footer_description || '',
-                webhookUrl: data.webhook_url || '',
-                metaPixelId: data.meta_pixel_id || '',
-                metaPixelEnabled: data.meta_pixel_enabled === true
+                webhookUrl: data.webhook_url || ''
+                // metaPixelId, metaPixelEnabled, metaCapiUrl — HARDCODED above, don't override
             };
         }
     } catch (error) {
@@ -118,13 +122,7 @@ function safeParseNumber(value, defaultValue) {
 
 function escapeHtml(unsafe) {
     if (!unsafe) return '';
-    const map = {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#039;'
-    };
+    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
     return String(unsafe).replace(/[&<>"']/g, (m) => map[m]);
 }
 
@@ -138,9 +136,7 @@ function generateOrderId() {
 
 // ==================== VARIANT HELPERS ====================
 function generateItemKey(productId, selectedVariant) {
-    if (!selectedVariant || Object.keys(selectedVariant).length === 0) {
-        return productId;
-    }
+    if (!selectedVariant || Object.keys(selectedVariant).length === 0) return productId;
     const sortedKeys = Object.keys(selectedVariant).sort();
     const variantString = sortedKeys.map(k => k + ':' + selectedVariant[k]).join('|');
     return productId + '|' + variantString;
@@ -194,13 +190,9 @@ function showToast(message, type) {
     };
     
     toast.innerHTML = 
-        '<div class="toast-icon">' +
-            '<i class="fas ' + (icons[type] || icons.info) + '"></i>' +
-        '</div>' +
+        '<div class="toast-icon"><i class="fas ' + (icons[type] || icons.info) + '"></i></div>' +
         '<span class="toast-message">' + escapeHtml(message) + '</span>' +
-        '<button class="toast-close">' +
-            '<i class="fas fa-times"></i>' +
-        '</button>';
+        '<button class="toast-close"><i class="fas fa-times"></i></button>';
     
     container.appendChild(toast);
     
@@ -234,5 +226,4 @@ window.generateItemKey = generateItemKey;
 window.areVariantsEqual = areVariantsEqual;
 window.showToast = showToast;
 
-// ⚡ FIXED: v3 → v4 ⚡
-console.log('✅ Supabase Config loaded (v4 — Read-Only Client)');
+console.log('✅ Supabase Config loaded (v5 — Pixel + CAPI Hardcoded)');
