@@ -1,5 +1,6 @@
 // ============================================================
-// NOVAHUB — Homepage Script (v4 — Uses Unified CartModule)
+// NOVAHUB — Homepage Script (v5 — Category Filter Fixed)
+// Domain: novahubgadgets.com
 // ============================================================
 
 let allProducts = [];
@@ -33,17 +34,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderLayoutSections();
     renderSidebarCollections();
     
-    // Handle ?openCart=1 param
+    // Handle URL params
     const params = new URLSearchParams(window.location.search);
+    
     if (params.get('openCart') === '1') {
         setTimeout(() => CartModule.openCartSidebar(), 500);
     }
     
-    // Handle ?category=xxx
+    // Handle ?category=xxx (shareable URL)
     const catId = params.get('category');
     if (catId) {
-        setTimeout(() => filterByCategory(catId), 300);
+        setTimeout(() => applyCategoryFilter(catId, false), 300);
     }
+    
+    // Handle browser back/forward
+    window.addEventListener('popstate', () => {
+        const p = new URLSearchParams(window.location.search);
+        const cat = p.get('category');
+        if (cat) {
+            applyCategoryFilter(cat, false);
+        } else {
+            clearCategoryFilter(false);
+        }
+    });
     
     console.log('✅ Homepage loaded');
 });
@@ -242,6 +255,7 @@ function renderLayoutSections() {
             const wrapper = document.createElement('section');
             wrapper.className = 'product-section custom-section-wrapper';
             wrapper.dataset.order = section.order;
+            wrapper.dataset.sectionId = sectionData.id;
             wrapper.innerHTML = `
                 <h2 class="section-title">${escapeHtml(sectionData.name)}</h2>
                 <div class="products-grid">
@@ -437,6 +451,7 @@ async function loadCategories() {
             .order('order_index', { ascending: true });
         if (error) throw error;
         allCategories = data || [];
+        console.log('✅ Categories loaded:', allCategories.length);
     } catch (error) {
         console.error('Categories error:', error);
         allCategories = [];
@@ -449,21 +464,36 @@ async function loadCategories() {
 function renderCategories() {
     const container = document.getElementById('categoriesContainer');
     const section = document.getElementById('categoriesSection');
-    if (!container) return;
+    if (!container || !section) return;
+    
+    section.style.display = 'block';
     
     if (allCategories.length === 0) {
-        section.style.display = 'none';
+        container.innerHTML = `
+            <div style="grid-column: 1/-1;text-align:center;padding:30px;color:#8E8E93;font-size:14px;">
+                No categories available
+            </div>
+        `;
         return;
     }
     
-    container.innerHTML = allCategories.map(cat => `
-        <div class="category-card" onclick="filterByCategory('${cat.id}')">
-            <img src="${escapeHtml(cat.image_url || 'https://via.placeholder.com/150')}" 
-                alt="${escapeHtml(cat.name)}" loading="lazy" 
-                onerror="this.src='https://via.placeholder.com/150'">
-            <h3>${escapeHtml(cat.name)}</h3>
-        </div>
-    `).join('');
+    // Get current category from URL
+    const params = new URLSearchParams(window.location.search);
+    const activeCatId = params.get('category');
+    
+    container.innerHTML = allCategories.map(cat => {
+        const isActive = cat.id === activeCatId;
+        return `
+            <div class="category-card ${isActive ? 'active-category' : ''}" 
+                 data-category-id="${escapeHtml(cat.id)}"
+                 onclick="filterByCategory('${cat.id}')">
+                <img src="${escapeHtml(cat.image_url || 'https://via.placeholder.com/150')}" 
+                    alt="${escapeHtml(cat.name)}" loading="lazy" 
+                    onerror="this.src='https://via.placeholder.com/150'">
+                <h3>${escapeHtml(cat.name)}</h3>
+            </div>
+        `;
+    }).join('');
 }
 
 // ============================================================
@@ -533,6 +563,7 @@ async function loadProducts() {
             .order('created_at', { ascending: false });
         if (error) throw error;
         allProducts = data || [];
+        console.log('✅ Products loaded:', allProducts.length);
     } catch (error) {
         console.error('Products error:', error);
         allProducts = [];
@@ -544,7 +575,14 @@ async function loadProducts() {
 // ============================================================
 function renderAllProducts() {
     const grid = document.getElementById('allProductsGrid');
+    const section = document.getElementById('allSection');
     if (!grid) return;
+    
+    // Reset section title
+    const title = section?.querySelector('.section-title');
+    if (title) {
+        title.innerHTML = 'All Products';
+    }
     
     if (allProducts.length === 0) {
         grid.innerHTML = '<div class="no-products"><i class="fas fa-box-open" style="font-size:48px;opacity:0.3;margin-bottom:15px;display:block;"></i><p>No products available</p></div>';
@@ -594,7 +632,7 @@ function renderProductCard(product) {
 }
 
 // ============================================================
-// QUICK ADD TO CART (homepage)
+// QUICK ADD TO CART
 // ============================================================
 function quickAddToCart(productId) {
     const product = allProducts.find(p => p.id === productId);
@@ -603,7 +641,6 @@ function quickAddToCart(productId) {
         return;
     }
     
-    // If product has variants, redirect to product page
     if (product.enable_variants && Array.isArray(product.variants) && product.variants.length > 0) {
         window.location.href = `product.html?id=${productId}`;
         return;
@@ -621,35 +658,129 @@ function quickAddToCart(productId) {
 window.quickAddToCart = quickAddToCart;
 
 // ============================================================
-// OPEN PRODUCT / FILTER
+// OPEN PRODUCT
 // ============================================================
 function openProduct(productId) {
     window.location.href = `product.html?id=${productId}`;
 }
 window.openProduct = openProduct;
 
+// ============================================================
+// FILTER BY CATEGORY — MAIN FUNCTION
+// ============================================================
 function filterByCategory(categoryId) {
-    // Since we don't have a category page, just filter all products
+    applyCategoryFilter(categoryId, true);
+}
+window.filterByCategory = filterByCategory;
+
+function applyCategoryFilter(categoryId, updateURL) {
+    // Find the category
+    const category = allCategories.find(c => c.id === categoryId);
+    if (!category) {
+        console.warn('Category not found:', categoryId);
+        showToast('Category not found', 'error');
+        return;
+    }
+    
+    // Filter products by category_ids
     const filtered = allProducts.filter(p => {
         const catIds = Array.isArray(p.category_ids) ? p.category_ids : [];
         return catIds.includes(categoryId);
     });
     
-    const grid = document.getElementById('allProductsGrid');
-    const allSection = document.getElementById('allSection');
+    console.log(`📂 Filtered "${category.name}": ${filtered.length} products`);
     
-    if (grid && allSection) {
-        if (filtered.length > 0) {
-            grid.innerHTML = filtered.map(p => renderProductCard(p)).join('');
-        } else {
-            grid.innerHTML = '<div class="no-products"><i class="fas fa-box-open" style="font-size:48px;opacity:0.3;margin-bottom:15px;display:block;"></i><p>No products in this category</p></div>';
-        }
-        allSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Get the All Products section
+    const allSection = document.getElementById('allSection');
+    const grid = document.getElementById('allProductsGrid');
+    
+    if (!allSection || !grid) {
+        console.error('❌ Products grid not found');
+        return;
     }
+    
+    // Update section title with category name + Clear button
+    const sectionTitle = allSection.querySelector('.section-title');
+    if (sectionTitle) {
+        sectionTitle.innerHTML = `
+            <span>${escapeHtml(category.name)}</span>
+            <button class="clear-filter-btn" onclick="clearCategoryFilter()">
+                <i class="fas fa-times"></i> Clear
+            </button>
+        `;
+    }
+    
+    // Render filtered products
+    if (filtered.length === 0) {
+        grid.innerHTML = `
+            <div class="no-products">
+                <i class="fas fa-box-open" style="font-size:48px;opacity:0.3;margin-bottom:15px;display:block;"></i>
+                <p>No products in "${escapeHtml(category.name)}"</p>
+                <button class="browse-all-btn" onclick="clearCategoryFilter()">
+                    Browse All Products
+                </button>
+            </div>
+        `;
+    } else {
+        grid.innerHTML = filtered.map(p => renderProductCard(p)).join('');
+    }
+    
+    // Update URL (for sharing + browser back button)
+    if (updateURL) {
+        const url = new URL(window.location);
+        url.searchParams.set('category', categoryId);
+        window.history.pushState({ categoryId }, '', url);
+    }
+    
+    // Update category card active states
+    document.querySelectorAll('.category-card').forEach(card => {
+        const cardCatId = card.dataset.categoryId;
+        card.classList.toggle('active-category', cardCatId === categoryId);
+    });
+    
+    // Scroll to products section
+    setTimeout(() => {
+        allSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+    
+    // Show toast
+    showToast(`${category.name}: ${filtered.length} products`, 'info');
     
     // Close sidebar if open
     if (window.closeMenu) window.closeMenu();
 }
-window.filterByCategory = filterByCategory;
 
-console.log('✅ Homepage script loaded (v4 — Unified Cart)');
+// ============================================================
+// CLEAR CATEGORY FILTER
+// ============================================================
+function clearCategoryFilter(updateURL = true) {
+    // Reset section title
+    const allSection = document.getElementById('allSection');
+    const sectionTitle = allSection?.querySelector('.section-title');
+    if (sectionTitle) {
+        sectionTitle.innerHTML = 'All Products';
+    }
+    
+    // Render all products
+    renderAllProducts();
+    
+    // Clear URL param
+    if (updateURL) {
+        const url = new URL(window.location);
+        url.searchParams.delete('category');
+        window.history.pushState({}, '', url);
+    }
+    
+    // Remove active state from category cards
+    document.querySelectorAll('.category-card').forEach(card => {
+        card.classList.remove('active-category');
+    });
+    
+    // Scroll to products
+    allSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    
+    showToast('Showing all products', 'success');
+}
+window.clearCategoryFilter = clearCategoryFilter;
+
+console.log('✅ Homepage script loaded (v5 — Category Filter Fixed)');
