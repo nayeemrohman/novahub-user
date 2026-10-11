@@ -1,5 +1,5 @@
 // ============================================================
-// NOVAHUB — Homepage Script (v7 — BUG FIXED)
+// NOVAHUB — Homepage Script (v8 — SLUG URL FIXED)
 // Domain: novahubgadgets.com
 // ============================================================
 
@@ -589,6 +589,20 @@ function renderAllProducts() {
 }
 
 // ============================================================
+// BUILD PRODUCT URL — Always use /product/slug format
+// ============================================================
+function buildProductUrl(product) {
+    if (!product) return '/product';
+    
+    const linkId = (product.seo_slug && String(product.seo_slug).trim())
+        ? String(product.seo_slug).trim()
+        : product.id;
+    
+    return '/product/' + encodeURIComponent(linkId);
+}
+window.buildProductUrl = buildProductUrl;
+
+// ============================================================
 // PRODUCT CARD
 // ============================================================
 function renderProductCard(product) {
@@ -597,6 +611,7 @@ function renderProductCard(product) {
     const hasDiscount = oldPrice > price;
     const discountPercent = hasDiscount ? Math.round(((oldPrice - price) / oldPrice) * 100) : 0;
     const isOutOfStock = product.stock_status === 'out_of_stock';
+    const productUrl = buildProductUrl(product);
     
     return `
         <div class="product-card">
@@ -638,7 +653,7 @@ function quickAddToCart(productId) {
     }
     
     if (product.enable_variants && Array.isArray(product.variants) && product.variants.length > 0) {
-        window.location.href = `product.html?id=${productId}`;
+        window.location.href = buildProductUrl(product);
         return;
     }
     
@@ -654,21 +669,16 @@ function quickAddToCart(productId) {
 window.quickAddToCart = quickAddToCart;
 
 // ============================================================
-// OPEN PRODUCT — with slug support + ViewContent tracking
+// OPEN PRODUCT — Uses /product/slug format
 // ============================================================
 function openProduct(productId) {
-    // ✅ FIX: Track ViewContent before navigation
     const product = allProducts.find(p => p.id === productId);
+    
     if (product && typeof window.trackViewContent === 'function') {
         window.trackViewContent(product);
     }
     
-    // ✅ FIX: Use slug if available
-    const linkId = (product && product.seo_slug && String(product.seo_slug).trim()) 
-        ? product.seo_slug 
-        : productId;
-    
-    window.location.href = `product.html?id=${encodeURIComponent(linkId)}`;
+    window.location.href = buildProductUrl(product);
 }
 window.openProduct = openProduct;
 
@@ -777,4 +787,4 @@ function clearCategoryFilter(updateURL = true) {
 }
 window.clearCategoryFilter = clearCategoryFilter;
 
-console.log('✅ Homepage script loaded (v7 — BUG FIXED)');
+console.log('✅ Homepage script loaded (v8 — SLUG URL FIXED)');
