@@ -1,5 +1,5 @@
 // ============================================================
-// NOVAHUB — Dynamic OG Meta Tag Generator
+// NOVAHUB — Dynamic OG Meta Tag Generator (v2)
 // Vercel Serverless Function
 // URL: https://novahubgadgets.com/og?id=PRODUCT_ID_OR_SLUG
 // ============================================================
@@ -101,6 +101,7 @@ function buildHTML(product) {
         const ogTitle = (product.og_title && String(product.og_title).trim()) || title;
         const ogDescription = (product.og_description && String(product.og_description).trim()) || description;
 
+        // ✅ IMAGE PRIORITY: og_image → main image_url → default
         if (product.og_image && String(product.og_image).trim()) {
             image = product.og_image;
         } else if (product.image_url && product.image_url.trim()) {
