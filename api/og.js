@@ -1,7 +1,8 @@
 // ============================================================
-// NOVAHUB — Dynamic OG Meta Tag Generator (v2)
+// NOVAHUB — Dynamic OG Meta Tag Generator (v3 — FULLY FIXED)
 // Vercel Serverless Function
 // URL: https://novahubgadgets.com/og?id=PRODUCT_ID_OR_SLUG
+//      https://novahubgadgets.com/product/SLUG
 // ============================================================
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://oxnfiueqmvggtjtciqbn.supabase.co';
@@ -13,6 +14,9 @@ const DEFAULT_IMAGE = SITE_URL + '/assets/images/logo.jpg';
 const DEFAULT_TITLE = 'Novahub – Best Gadget Accessories Shop in Bangladesh';
 const DEFAULT_DESCRIPTION = 'Shop premium gadget accessories at Novahub – Headphones, Gaming Gear, Power Banks & more at best prices.';
 
+// ============================================================
+// ESCAPE HELPERS
+// ============================================================
 function escapeHtml(str) {
     if (!str) return '';
     return String(str)
@@ -21,6 +25,16 @@ function escapeHtml(str) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
+}
+
+function escapeAttr(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
 }
 
 function truncate(str, length) {
@@ -41,6 +55,9 @@ function isUUID(str) {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 }
 
+// ============================================================
+// FETCH PRODUCT FROM SUPABASE
+// ============================================================
 async function fetchProduct(idOrSlug) {
     if (!idOrSlug) return null;
 
@@ -48,14 +65,20 @@ async function fetchProduct(idOrSlug) {
         const col = isUUID(idOrSlug) ? 'id' : 'seo_slug';
         const url = SUPABASE_URL + '/rest/v1/products?' + col + '=eq.' + encodeURIComponent(idOrSlug) + '&is_active=eq.true&select=*';
 
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
+
         const response = await fetch(url, {
             method: 'GET',
             headers: {
                 'apikey': SUPABASE_KEY,
                 'Authorization': 'Bearer ' + SUPABASE_KEY,
                 'Accept': 'application/json'
-            }
+            },
+            signal: controller.signal
         });
+
+        clearTimeout(timeout);
 
         if (!response.ok) return null;
 
@@ -63,11 +86,14 @@ async function fetchProduct(idOrSlug) {
         if (!Array.isArray(data) || data.length === 0) return null;
         return data[0];
     } catch (error) {
-        console.error('Fetch error:', error.message);
+        console.error('Fetch product error:', error.message);
         return null;
     }
 }
 
+// ============================================================
+// BUILD OG HTML
+// ============================================================
 function buildHTML(product) {
     let title = DEFAULT_TITLE;
     let description = DEFAULT_DESCRIPTION;
@@ -87,38 +113,43 @@ function buildHTML(product) {
 
         const productPrice = parseFloat(product.price) || 0;
 
+        // Priority: seo_title → auto-generated
         const autoTitle = product.title + ' – ' + formatPrice(productPrice) + ' | ' + SITE_NAME;
         title = (product.seo_title && String(product.seo_title).trim()) || autoTitle;
 
+        // Priority: seo_description → description → auto
         if (product.seo_description && String(product.seo_description).trim()) {
             description = truncate(product.seo_description, 160);
-        } else if (product.description && product.description.trim()) {
+        } else if (product.description && String(product.description).trim()) {
             description = truncate(product.description, 160);
         } else {
             description = 'Buy ' + product.title + ' at ' + formatPrice(productPrice) + ' in Bangladesh. Cash on Delivery, Fast Shipping. Order now from Novahub.';
         }
 
-        const ogTitle = (product.og_title && String(product.og_title).trim()) || title;
-        const ogDescription = (product.og_description && String(product.og_description).trim()) || description;
+        // OG overrides
+        if (product.og_title && String(product.og_title).trim()) {
+            title = String(product.og_title).trim();
+        }
+        if (product.og_description && String(product.og_description).trim()) {
+            description = truncate(product.og_description, 200);
+        }
 
-        // ✅ IMAGE PRIORITY: og_image → main image_url → default
+        // Image priority: og_image → image_url → default
         if (product.og_image && String(product.og_image).trim()) {
-            image = product.og_image;
-        } else if (product.image_url && product.image_url.trim()) {
-            image = product.image_url;
+            image = String(product.og_image).trim();
+        } else if (product.image_url && String(product.image_url).trim()) {
+            image = String(product.image_url).trim();
         }
 
         price = productPrice.toString();
         availability = product.stock_status === 'out_of_stock' ? 'out of stock' : 'in stock';
-
-        title = ogTitle;
-        description = ogDescription;
     }
 
-    const safeTitle = escapeHtml(title);
-    const safeDescription = escapeHtml(description);
-    const safeImage = escapeHtml(image);
-    const safeUrl = escapeHtml(url);
+    const safeTitle = escapeAttr(title);
+    const safeDescription = escapeAttr(description);
+    const safeImage = escapeAttr(image);
+    const safeUrl = escapeAttr(url);
+    const safeRedirectUrl = url.replace(/"/g, '\\"').replace(/\\/g, '\\\\');
 
     return '<!DOCTYPE html>\n' +
 '<html lang="en">\n' +
@@ -129,34 +160,42 @@ function buildHTML(product) {
 '    <title>' + safeTitle + '</title>\n' +
 '    <meta name="description" content="' + safeDescription + '">\n' +
 '    \n' +
+'    <!-- Open Graph (Facebook, WhatsApp, Telegram, LinkedIn) -->\n' +
 '    <meta property="og:type" content="product">\n' +
 '    <meta property="og:site_name" content="' + SITE_NAME + '">\n' +
 '    <meta property="og:url" content="' + safeUrl + '">\n' +
 '    <meta property="og:title" content="' + safeTitle + '">\n' +
 '    <meta property="og:description" content="' + safeDescription + '">\n' +
 '    <meta property="og:image" content="' + safeImage + '">\n' +
+'    <meta property="og:image:secure_url" content="' + safeImage + '">\n' +
 '    <meta property="og:image:width" content="1200">\n' +
 '    <meta property="og:image:height" content="630">\n' +
+'    <meta property="og:image:type" content="image/jpeg">\n' +
 '    <meta property="og:image:alt" content="' + safeTitle + '">\n' +
 '    <meta property="og:locale" content="en_US">\n' +
+'    <meta property="og:locale:alternate" content="bn_BD">\n' +
 '    \n' +
-(price ? '    <meta property="product:price:amount" content="' + price + '">\n' +
+(price ? '    <meta property="product:price:amount" content="' + escapeAttr(price) + '">\n' +
 '    <meta property="product:price:currency" content="BDT">\n' : '') +
-(availability ? '    <meta property="product:availability" content="' + availability + '">\n' : '') +
+(availability ? '    <meta property="product:availability" content="' + escapeAttr(availability) + '">\n' : '') +
 '    \n' +
+'    <!-- Twitter Card -->\n' +
 '    <meta name="twitter:card" content="summary_large_image">\n' +
 '    <meta name="twitter:site" content="@novahub">\n' +
 '    <meta name="twitter:title" content="' + safeTitle + '">\n' +
 '    <meta name="twitter:description" content="' + safeDescription + '">\n' +
 '    <meta name="twitter:image" content="' + safeImage + '">\n' +
+'    <meta name="twitter:image:alt" content="' + safeTitle + '">\n' +
 '    \n' +
-'    <meta itemprop="name" content="' + safeTitle + '">\n' +
-'    <meta itemprop="description" content="' + safeDescription + '">\n' +
-'    <meta itemprop="image" content="' + safeImage + '">\n' +
+'    <!-- WhatsApp specific -->\n' +
+'    <meta property="whatsapp:title" content="' + safeTitle + '">\n' +
+'    <meta property="whatsapp:description" content="' + safeDescription + '">\n' +
+'    <meta property="whatsapp:image" content="' + safeImage + '">\n' +
 '    \n' +
+'    <!-- Canonical + Auto Redirect -->\n' +
 '    <link rel="canonical" href="' + safeUrl + '">\n' +
 '    <meta http-equiv="refresh" content="0;url=' + safeUrl + '">\n' +
-'    <script>window.location.replace("' + safeUrl + '");<\/script>\n' +
+'    <script>window.location.replace("' + safeRedirectUrl + '");<\/script>\n' +
 '</head>\n' +
 '<body>\n' +
 '    <p>Redirecting to <a href="' + safeUrl + '">' + safeTitle + '</a>...</p>\n' +
@@ -164,6 +203,9 @@ function buildHTML(product) {
 '</html>';
 }
 
+// ============================================================
+// HANDLER
+// ============================================================
 module.exports = async (req, res) => {
     try {
         const url = new URL(req.url, 'https://' + (req.headers.host || 'novahubgadgets.com'));
@@ -173,7 +215,7 @@ module.exports = async (req, res) => {
         const html = buildHTML(product);
 
         res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=3600, stale-while-revalidate=86400');
+        res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=300, stale-while-revalidate=3600');
         res.setHeader('X-Robots-Tag', 'noindex');
 
         return res.status(200).send(html);
