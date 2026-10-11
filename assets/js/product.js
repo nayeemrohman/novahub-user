@@ -1,5 +1,5 @@
 // ============================================================
-// NOVAHUB — Product Page Script (v8 — OG/Twitter/WhatsApp FIXED)
+// NOVAHUB — Product Page Script (v9 — FINAL)
 // ============================================================
 
 let product = null;
@@ -152,7 +152,7 @@ async function loadProduct(productIdOrSlug) {
 }
 
 // ============================================================
-// SEO UPDATE — v8 (OG + Twitter + WhatsApp FULLY FIXED)
+// SEO UPDATE
 // ============================================================
 function updateSEO() {
     const price = safeParseNumber(product.price);
@@ -193,7 +193,6 @@ function updateSEO() {
     const canonical = document.getElementById('canonicalLink');
     if (canonical) canonical.href = productUrl;
     
-    // OG tags
     setMetaById('og:url', productUrl);
     setMetaById('og:title', ogTitleValue);
     setMetaById('og:description', ogDescValue);
@@ -205,7 +204,6 @@ function updateSEO() {
     const ogImageAlt = document.getElementById('ogImageAlt');
     if (ogImageAlt) ogImageAlt.setAttribute('content', ogTitleValue);
     
-    // Twitter tags
     setMetaById('twitter:url', productUrl);
     setMetaById('twitter:title', ogTitleValue);
     setMetaById('twitter:description', ogDescValue);
@@ -216,12 +214,10 @@ function updateSEO() {
     const twitterImageAlt = document.getElementById('twitterImageAlt');
     if (twitterImageAlt) twitterImageAlt.setAttribute('content', ogTitleValue);
     
-    // WhatsApp tags
     setMetaById('whatsapp:title', ogTitleValue);
     setMetaById('whatsapp:description', ogDescValue);
     setMetaById('whatsapp:image', productImage);
     
-    // Schema.org Product
     const schema = {
         "@context": "https://schema.org",
         "@type": "Product",
@@ -1050,4 +1046,4 @@ async function submitReview() {
 }
 window.submitReview = submitReview;
 
-console.log('✅ Product page loaded (v8 — OG/Twitter/WhatsApp FIXED)');
+console.log('✅ Product page loaded (v9 — FINAL)');

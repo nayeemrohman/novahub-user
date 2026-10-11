@@ -1,8 +1,6 @@
 // ============================================================
-// NOVAHUB — Dynamic OG Meta Tag Generator (v3 — FULLY FIXED)
+// NOVAHUB — Dynamic OG Meta Tag Generator (v4 — FINAL)
 // Vercel Serverless Function
-// URL: https://novahubgadgets.com/og?id=PRODUCT_ID_OR_SLUG
-//      https://novahubgadgets.com/product/SLUG
 // ============================================================
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://oxnfiueqmvggtjtciqbn.supabase.co';
@@ -56,18 +54,17 @@ function isUUID(str) {
 }
 
 // ============================================================
-// FETCH PRODUCT FROM SUPABASE
+// FETCH PRODUCT
 // ============================================================
 async function fetchProduct(idOrSlug) {
     if (!idOrSlug) return null;
-
     try {
         const col = isUUID(idOrSlug) ? 'id' : 'seo_slug';
         const url = SUPABASE_URL + '/rest/v1/products?' + col + '=eq.' + encodeURIComponent(idOrSlug) + '&is_active=eq.true&select=*';
-
+        
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 5000);
-
+        
         const response = await fetch(url, {
             method: 'GET',
             headers: {
@@ -77,11 +74,10 @@ async function fetchProduct(idOrSlug) {
             },
             signal: controller.signal
         });
-
+        
         clearTimeout(timeout);
-
+        
         if (!response.ok) return null;
-
         const data = await response.json();
         if (!Array.isArray(data) || data.length === 0) return null;
         return data[0];
@@ -92,32 +88,35 @@ async function fetchProduct(idOrSlug) {
 }
 
 // ============================================================
-// BUILD OG HTML
+// BUILD HTML
 // ============================================================
 function buildHTML(product) {
     let title = DEFAULT_TITLE;
     let description = DEFAULT_DESCRIPTION;
     let image = DEFAULT_IMAGE;
-    let url = SITE_URL;
+    let canonicalUrl = SITE_URL;
+    let redirectUrl = SITE_URL;
     let price = '';
     let availability = 'in stock';
 
     if (product) {
         const slug = (product.seo_slug && String(product.seo_slug).trim()) || null;
         const canonicalFromDb = (product.canonical_url && String(product.canonical_url).trim()) || null;
-        const productUrl = canonicalFromDb
+        
+        canonicalUrl = canonicalFromDb
             || (slug
                 ? SITE_URL + '/product/' + encodeURIComponent(slug)
                 : SITE_URL + '/product.html?id=' + product.id);
-        url = productUrl;
+        
+        redirectUrl = slug
+            ? SITE_URL + '/product/' + encodeURIComponent(slug)
+            : SITE_URL + '/product.html?id=' + product.id;
 
         const productPrice = parseFloat(product.price) || 0;
 
-        // Priority: seo_title → auto-generated
         const autoTitle = product.title + ' – ' + formatPrice(productPrice) + ' | ' + SITE_NAME;
         title = (product.seo_title && String(product.seo_title).trim()) || autoTitle;
 
-        // Priority: seo_description → description → auto
         if (product.seo_description && String(product.seo_description).trim()) {
             description = truncate(product.seo_description, 160);
         } else if (product.description && String(product.description).trim()) {
@@ -126,7 +125,6 @@ function buildHTML(product) {
             description = 'Buy ' + product.title + ' at ' + formatPrice(productPrice) + ' in Bangladesh. Cash on Delivery, Fast Shipping. Order now from Novahub.';
         }
 
-        // OG overrides
         if (product.og_title && String(product.og_title).trim()) {
             title = String(product.og_title).trim();
         }
@@ -134,7 +132,6 @@ function buildHTML(product) {
             description = truncate(product.og_description, 200);
         }
 
-        // Image priority: og_image → image_url → default
         if (product.og_image && String(product.og_image).trim()) {
             image = String(product.og_image).trim();
         } else if (product.image_url && String(product.image_url).trim()) {
@@ -148,8 +145,9 @@ function buildHTML(product) {
     const safeTitle = escapeAttr(title);
     const safeDescription = escapeAttr(description);
     const safeImage = escapeAttr(image);
-    const safeUrl = escapeAttr(url);
-    const safeRedirectUrl = url.replace(/"/g, '\\"').replace(/\\/g, '\\\\');
+    const safeCanonical = escapeAttr(canonicalUrl);
+    const safeRedirect = escapeAttr(redirectUrl);
+    const safeRedirectJs = redirectUrl.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 
     return '<!DOCTYPE html>\n' +
 '<html lang="en">\n' +
@@ -160,10 +158,10 @@ function buildHTML(product) {
 '    <title>' + safeTitle + '</title>\n' +
 '    <meta name="description" content="' + safeDescription + '">\n' +
 '    \n' +
-'    <!-- Open Graph (Facebook, WhatsApp, Telegram, LinkedIn) -->\n' +
+'    <!-- Open Graph -->\n' +
 '    <meta property="og:type" content="product">\n' +
 '    <meta property="og:site_name" content="' + SITE_NAME + '">\n' +
-'    <meta property="og:url" content="' + safeUrl + '">\n' +
+'    <meta property="og:url" content="' + safeCanonical + '">\n' +
 '    <meta property="og:title" content="' + safeTitle + '">\n' +
 '    <meta property="og:description" content="' + safeDescription + '">\n' +
 '    <meta property="og:image" content="' + safeImage + '">\n' +
@@ -187,18 +185,18 @@ function buildHTML(product) {
 '    <meta name="twitter:image" content="' + safeImage + '">\n' +
 '    <meta name="twitter:image:alt" content="' + safeTitle + '">\n' +
 '    \n' +
-'    <!-- WhatsApp specific -->\n' +
+'    <!-- WhatsApp -->\n' +
 '    <meta property="whatsapp:title" content="' + safeTitle + '">\n' +
 '    <meta property="whatsapp:description" content="' + safeDescription + '">\n' +
 '    <meta property="whatsapp:image" content="' + safeImage + '">\n' +
 '    \n' +
-'    <!-- Canonical + Auto Redirect -->\n' +
-'    <link rel="canonical" href="' + safeUrl + '">\n' +
-'    <meta http-equiv="refresh" content="0;url=' + safeUrl + '">\n' +
-'    <script>window.location.replace("' + safeRedirectUrl + '");<\/script>\n' +
+'    <!-- Canonical + Redirect -->\n' +
+'    <link rel="canonical" href="' + safeCanonical + '">\n' +
+'    <meta http-equiv="refresh" content="0;url=' + safeRedirect + '">\n' +
+'    <script>window.location.replace("' + safeRedirectJs + '");<\/script>\n' +
 '</head>\n' +
 '<body>\n' +
-'    <p>Redirecting to <a href="' + safeUrl + '">' + safeTitle + '</a>...</p>\n' +
+'    <p>Redirecting to <a href="' + safeRedirect + '">' + safeTitle + '</a>...</p>\n' +
 '</body>\n' +
 '</html>';
 }
