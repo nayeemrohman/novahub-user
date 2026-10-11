@@ -1,9 +1,5 @@
 // ============================================================
-// NOVAHUB — Checkout Script (v6 — CAPI Integration)
-// - Pixel + Conversion API on Purchase
-// - Parallel stock validation
-// - Fixed currency prefix
-// - Better error handling
+// NOVAHUB — Checkout Script (v7 — BUG FIXED)
 // ============================================================
 
 let checkoutMode = 'cart';
@@ -371,7 +367,6 @@ async function prefillUserInfo() {
         if (el) el.value = profile.full_address;
     }
     
-    // Prefill location
     if (profile.division && LOCATION_DATA.bangladesh.levels[profile.division]) {
         selectedDivision = profile.division;
         document.getElementById('division').value = profile.division;
@@ -653,7 +648,7 @@ async function validateStockBeforeOrder() {
 }
 
 // ============================================================
-// PLACE ORDER — with Pixel + CAPI
+// PLACE ORDER
 // ============================================================
 async function placeOrder(event) {
     if (event) event.preventDefault();
@@ -739,10 +734,8 @@ async function placeOrder(event) {
         
         console.log('✅ Order placed:', data);
         
-        // Fire webhook (non-blocking)
         sendWebhookNotification(orderData).catch(err => console.error('Webhook failed:', err));
         
-        // ===== ✅ Pixel + Conversion API: Track Purchase =====
         if (typeof window.trackPurchase === 'function') {
             window.trackPurchase(orderId, checkoutItems, total, {
                 email: orderData.email,
@@ -754,7 +747,6 @@ async function placeOrder(event) {
             });
         }
         
-        // Clear cart
         if (checkoutMode === 'cart') {
             CartModule.clearSelected();
         } else {
@@ -990,4 +982,4 @@ function continueShopping() {
 }
 window.continueShopping = continueShopping;
 
-console.log('✅ Checkout script loaded (v6 — Pixel + CAPI)');
+console.log('✅ Checkout script loaded (v7 — BUG FIXED)');

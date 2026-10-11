@@ -475,7 +475,6 @@ a { text-decoration: none; color: inherit; }
     line-height: 1.2;
 }
 
-/* Active category state */
 .category-card.active-category {
     border-color: var(--red) !important;
     transform: scale(1.05);
@@ -1402,14 +1401,12 @@ a { text-decoration: none; color: inherit; }
     transform: scale(1.05);
 }
 
-/* Sidebar User Avatar Border */
 .user-avatar {
     border: 2px solid var(--red) !important;
     padding: 2px;
     box-sizing: border-box;
 }
 
-/* Mobile */
 @media (max-width: 600px) {
     #headerProfileBtn {
         width: 40px;

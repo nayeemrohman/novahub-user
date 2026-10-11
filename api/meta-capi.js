@@ -1,13 +1,25 @@
 // ============================================================
 // NOVAHUB — Meta Conversions API
 // Vercel Serverless Function
-// Endpoint: https://YOUR-DOMAIN/api/meta-capi
+// Endpoint: https://novahubgadgets.com/api/meta-capi
+// ============================================================
+// SECURITY: All secrets loaded from environment variables.
+// Never hardcode tokens in this file.
+//
+// Required env vars (set in Vercel Dashboard):
+//   META_PIXEL_ID         — Meta Dataset / Pixel ID
+//   META_ACCESS_TOKEN     — Meta Conversions API Access Token
+//   META_TEST_EVENT_CODE  — Optional. Only for Events Manager Test Events.
 // ============================================================
 
-const PIXEL_ID = '1072007485675742';
-const ACCESS_TOKEN = 'EAAP8WCYcuFYBSuG4tadvNPhVSXfMXuKtnlyxU4csuD1M7Ex534ZBUN5YCVmI4GNAjfixcuXbaUqmYA7avEJfF6UzhXRUBnjZCzFZBEhu6R7E2FZAqmpU9ZA19dQKAIdsPNpI9sE6kOeSS6N4W6K8g1T1fVEi6uLnhnBPJLmJ9dFGNohIZCS3a1fQuM94ZAwUgTxYQZDZD';
+const PIXEL_ID = process.env.META_PIXEL_ID || '1072007485675742';
+const ACCESS_TOKEN = process.env.META_ACCESS_TOKEN || '';
 const API_VERSION = 'v18.0';
-const TEST_EVENT_CODE = '';
+const TEST_EVENT_CODE = process.env.META_TEST_EVENT_CODE || '';
+
+if (!ACCESS_TOKEN) {
+    console.error('❌ META_ACCESS_TOKEN is not set. CAPI calls will fail.');
+}
 
 module.exports = async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -16,6 +28,13 @@ module.exports = async (req, res) => {
     
     if (req.method === 'OPTIONS') return res.status(204).end();
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+    
+    if (!ACCESS_TOKEN) {
+        return res.status(500).json({
+            success: false,
+            error: 'Server misconfigured: META_ACCESS_TOKEN missing'
+        });
+    }
     
     try {
         const body = req.body || {};

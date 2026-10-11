@@ -1,5 +1,5 @@
 // ============================================================
-// NOVAHUB — Profile Complete Page (v4)
+// NOVAHUB — Profile Complete Page (v5 — BUG FIXED)
 // ============================================================
 
 let currentUserData = null;
@@ -41,31 +41,39 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ============================================================
-// WAIT FOR SESSION
+// WAIT FOR SESSION (with onAuthStateChange fallback)
 // ============================================================
 async function waitForSession() {
-    for (let i = 0; i < MAX_INIT_RETRIES; i++) {
-        try {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            if (session?.user) {
-                currentUserData = session.user;
-                return;
-            }
-            
-            if (i === 0) {
-                const { data: { user } } = await supabaseClient.auth.getUser();
-                if (user) {
-                    currentUserData = user;
-                    return;
-                }
-            }
-            
-            await new Promise(r => setTimeout(r, 500));
-        } catch (err) {
-            await new Promise(r => setTimeout(r, 500));
+    // First, check immediately
+    try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (session?.user) {
+            currentUserData = session.user;
+            return;
         }
-    }
-    currentUserData = null;
+    } catch (err) {}
+    
+    // Then set up listener for session establishment
+    return new Promise((resolve) => {
+        let resolved = false;
+        const timeout = setTimeout(() => {
+            if (!resolved) {
+                resolved = true;
+                currentUserData = null;
+                resolve();
+            }
+        }, 5000);
+        
+        const { data: { subscription } } = supabaseClient.auth.onAuthStateChange((event, session) => {
+            if (!resolved && session?.user) {
+                resolved = true;
+                clearTimeout(timeout);
+                currentUserData = session.user;
+                try { subscription?.unsubscribe(); } catch(e) {}
+                resolve();
+            }
+        });
+    });
 }
 
 // ============================================================
@@ -78,6 +86,7 @@ async function loadSettings() {
         
         if (data) {
             window.settings = {
+                ...window.settings,
                 shopName: data.shop_name || 'Novahub',
                 currency: data.currency || '৳'
             };
@@ -363,4 +372,4 @@ function skipProfileComplete() {
 }
 window.skipProfileComplete = skipProfileComplete;
 
-console.log('✅ Profile Complete script loaded (v4)');
+console.log('✅ Profile Complete script loaded (v5 — BUG FIXED)');

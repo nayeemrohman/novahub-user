@@ -10,7 +10,6 @@
     flex-direction: column;
 }
 
-/* ===== HEADER COMPACT ===== */
 .header-compact .header-title {
     font-size: 1.2rem;
     font-weight: 800;
@@ -38,7 +37,6 @@
     transform: scale(1.05);
 }
 
-/* ===== WRAPPER ===== */
 .auth-wrapper {
     flex: 1;
     width: 100%;
@@ -51,7 +49,6 @@
     justify-content: center;
 }
 
-/* ===== LOGO ===== */
 .auth-logo-wrap {
     text-align: center;
     margin-bottom: 24px;
@@ -80,7 +77,6 @@
     }
 }
 
-/* ===== WELCOME TEXT ===== */
 .auth-welcome {
     text-align: center;
     margin-bottom: 32px;
@@ -102,7 +98,6 @@
     letter-spacing: 0.5px;
 }
 
-/* ===== GOOGLE BUTTON ===== */
 .auth-google-wrap {
     width: 100%;
     margin-bottom: 24px;
@@ -179,7 +174,6 @@
     color: var(--red);
 }
 
-/* ===== INFO NOTE ===== */
 .auth-info-note {
     display: flex;
     align-items: center;
@@ -206,7 +200,6 @@
     letter-spacing: 0.2px;
 }
 
-/* ===== TERMS NOTE ===== */
 .auth-terms-note {
     text-align: center;
     padding: 0 10px;
@@ -232,7 +225,6 @@
     color: var(--red-dark);
 }
 
-/* ===== FOOTER ===== */
 .auth-footer {
     text-align: center;
     padding: 20px;
@@ -241,7 +233,6 @@
     letter-spacing: 0.5px;
 }
 
-/* ===== RESPONSIVE ===== */
 @media (max-width: 480px) {
     .auth-wrapper { padding: 30px 18px 30px; }
     .auth-logo { width: 84px; height: 84px; }
@@ -255,9 +246,6 @@
     .auth-terms-note p { font-size: 12px; }
 }
 
-/* ============================================================
-   HEADER PROFILE ICON — Red Border (Auth Page)
-   ============================================================ */
 #headerProfileBtn {
     border: 2px solid var(--red);
     border-radius: 50%;

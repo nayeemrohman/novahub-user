@@ -1,5 +1,5 @@
 // ============================================================
-// NOVAHUB — Unified Cart Module (v4)
+// NOVAHUB — Unified Cart Module (v5 — BUG FIXED)
 // Used by: index, product, checkout, order-track, static pages
 // Single source of truth for cart operations
 // ============================================================
@@ -110,8 +110,9 @@
         
         saveCart();
         
+        // ✅ FIX: Pass variant to trackAddToCart
         if (typeof window.trackAddToCart === 'function') {
-            window.trackAddToCart(product, quantity);
+            window.trackAddToCart(product, quantity, selectedVariant);
         }
         
         return { success: true };
@@ -247,7 +248,7 @@
             return `
                 <div class="cart-item">
                     <input type="checkbox" class="cart-item-checkbox" ${isSelected ? 'checked' : ''} 
-                        onchange="CartModule.toggleCartItem('${item.productId}', ${variantJSON})">
+                        onchange="CartModule.toggleCartItemAndRefresh('${item.productId}', ${variantJSON})">
                     <img src="${escapeHtml(item.imageURL || 'https://via.placeholder.com/56')}" 
                         alt="${escapeHtml(item.title || 'Product')}"
                         onclick="window.location.href='product.html?id=${item.productId}'"
@@ -273,7 +274,6 @@
         if (selectedCountEl) selectedCountEl.textContent = selectedCount;
         if (selectedCartCountEl) selectedCartCountEl.textContent = `${selectedCount}/${cart.length}`;
         
-        // Update select-all checkbox
         const selectAllBox = document.getElementById('selectAllCheckbox');
         if (selectAllBox) {
             selectAllBox.checked = selectedCount === cart.length && cart.length > 0;
@@ -364,7 +364,6 @@
             });
         }
         
-        // Listen to storage changes (multi-tab sync)
         window.addEventListener('storage', (e) => {
             if (e.key === 'novahub_cart' || e.key === 'novahub_selected_cart') {
                 loadCart();
@@ -383,14 +382,12 @@
     // EXPORT
     // ============================================================
     window.CartModule = {
-        // State
         getCart: getCart,
         getSelected: getSelected,
         getSelectedItems: getSelectedItems,
         getTotalCount: getTotalCount,
         getSubtotal: getSubtotal,
         
-        // Actions
         addToCart: addToCart,
         updateQuantity: updateQuantity,
         removeFromCart: removeFromCart,
@@ -399,7 +396,6 @@
         deselectAll: deselectAll,
         clearSelected: clearSelected,
         
-        // UI
         renderCartUI: renderCartUI,
         updateQuantityAndRefresh: updateQuantityAndRefresh,
         removeAndRefresh: removeAndRefresh,
@@ -407,16 +403,14 @@
         openCartSidebar: openCartSidebar,
         closeCartSidebar: closeCartSidebar,
         
-        // Checkout
         goToCheckout: goToCheckout
     };
     
-    // Legacy aliases (for backwards compatibility)
     window.loadCartFromStorage = loadCart;
     window.updateCartUI = renderCartUI;
     window.closeCartSidebar = closeCartSidebar;
     window.openCartSidebar = openCartSidebar;
     window.goToCheckout = goToCheckout;
     
-    console.log('✅ Unified Cart Module loaded (v4)');
+    console.log('✅ Unified Cart Module loaded (v5 — BUG FIXED)');
 })();

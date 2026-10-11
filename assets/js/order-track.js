@@ -1,6 +1,6 @@
 // ============================================================
-// NOVAHUB — Order Track Script (v4)
-// FIXED: Requires Order ID + Phone Number for privacy
+// NOVAHUB — Order Track Script (v6 — BUG FIXED)
+// Uses secure track_order RPC
 // ============================================================
 
 const STATUS_STEPS = [
@@ -37,7 +37,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
     
-    // Prefill phone if logged in
     const user = await getCurrentUser();
     if (user) {
         const profile = await getUserProfile(user.id);
@@ -59,6 +58,7 @@ async function loadSettings() {
         
         if (data) {
             window.settings = {
+                ...window.settings,
                 shopName: data.shop_name || 'Novahub',
                 currency: data.currency || '৳',
                 orderPrefix: data.order_prefix || 'NV',
@@ -102,7 +102,7 @@ async function updateHeaderProfile() {
 }
 
 // ============================================================
-// TRACK ORDER — Click Handler
+// TRACK ORDER
 // ============================================================
 async function trackOrder() {
     const orderInput = document.getElementById('orderIdInput');
@@ -143,27 +143,19 @@ async function fetchAndRenderOrder(orderId, phone) {
     
     try {
         const { data, error } = await supabaseClient
-            .from('orders')
-            .select('*')
-            .eq('order_id', orderId)
-            .single();
+            .rpc('track_order', {
+                p_order_id: orderId,
+                p_phone:    phone
+            });
         
-        if (error || !data) {
-            console.log('❌ Order not found:', orderId);
+        if (error || !data || data.length === 0) {
+            console.log('❌ Order not found or phone mismatch:', orderId);
             showState('notFound');
             return;
         }
         
-        // Verify phone number matches (privacy protection)
-        const storedPhone = (data.phone || '').trim();
-        if (storedPhone !== phone) {
-            console.log('❌ Phone mismatch for order:', orderId);
-            showState('notFound');
-            return;
-        }
-        
-        console.log('✅ Order verified:', data.order_id);
-        renderOrder(data);
+        console.log('✅ Order verified:', data[0].order_id);
+        renderOrder(data[0]);
         showState('details');
         
         document.title = 'Order ' + orderId + ' – Novahub';
@@ -244,7 +236,7 @@ function renderOrder(order) {
     
     setText('displayOrderId', order.order_id);
     setText('displayName', order.full_name || '-');
-    setText('displayPhone', maskPhone(order.phone || '-'));
+    setText('displayPhone', order.phone_masked || '-');
     
     const addressParts = [order.village, order.upazila, order.district, order.division].filter(Boolean);
     setText('displayAddress', addressParts.join(', ') || '-');
@@ -303,15 +295,10 @@ function setText(id, value) {
     if (el) el.textContent = value;
 }
 
-function maskPhone(phone) {
-    if (!phone || phone.length < 6) return phone;
-    return phone.substring(0, 3) + '****' + phone.substring(phone.length - 3);
-}
-
 function formatPrice(price) {
     const curr = window.settings?.currency || '৳';
     const n = parseFloat(price) || 0;
     return curr + n.toLocaleString('en-BD', { maximumFractionDigits: 2 });
 }
 
-console.log('✅ Order Track script loaded (v4 — Phone Verification)');
+console.log('✅ Order Track script loaded (v6 — BUG FIXED)');

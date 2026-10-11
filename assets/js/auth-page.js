@@ -1,5 +1,5 @@
 // ============================================================
-// NOVAHUB — Auth Page Script (v4)
+// NOVAHUB — Auth Page Script (v5 — BUG FIXED)
 // Google-Only Login with robust OAuth callback handling
 // ============================================================
 
@@ -15,11 +15,9 @@ window.goBackFromAuth = goBackFromAuth;
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('🚀 Auth page initializing...');
     
-    // Handle OAuth callback first
     const handled = await handleOAuthCallback();
     if (handled) return;
     
-    // If already logged in → redirect
     const user = await getCurrentUser();
     if (user) {
         console.log('✅ Already logged in, redirecting...');
@@ -44,7 +42,6 @@ async function handleOAuthCallback() {
             const errDesc = params.get('error_description') || params.get('error');
             console.error('OAuth error:', errDesc);
             showToast('Login failed: ' + errDesc, 'error');
-            // Clean URL
             window.history.replaceState({}, '', window.location.pathname);
             return false;
         }
@@ -52,16 +49,13 @@ async function handleOAuthCallback() {
         if (hasCode || hasAccessToken) {
             console.log('🔄 OAuth callback detected...');
             
-            // Wait for Supabase to establish session
             for (let i = 0; i < 10; i++) {
                 const { data: { session } } = await supabaseClient.auth.getSession();
                 if (session?.user) {
                     console.log('✅ Session established:', session.user.email);
                     
-                    // Clean URL (remove code/hash)
                     window.history.replaceState({}, '', window.location.pathname);
                     
-                    // Check profile completion
                     const profile = await getUserProfile(session.user.id);
                     
                     if (!profile || !profile.phone || !profile.division || !profile.village) {
@@ -132,4 +126,4 @@ async function handleGoogleSignIn() {
 }
 window.handleGoogleSignIn = handleGoogleSignIn;
 
-console.log('✅ Auth page script loaded (v4)');
+console.log('✅ Auth page script loaded (v5 — BUG FIXED)');

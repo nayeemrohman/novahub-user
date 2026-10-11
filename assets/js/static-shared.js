@@ -1,5 +1,5 @@
 // ============================================================
-// NOVAHUB — Static Pages Shared Script (v4)
+// NOVAHUB — Static Pages Shared Script (v5 — BUG FIXED)
 // Used in: about.html, terms.html, privacy.html
 // ============================================================
 
@@ -24,6 +24,7 @@ async function loadSettings() {
         
         if (data) {
             window.settings = {
+                ...window.settings,
                 shopName: data.shop_name || 'Novahub',
                 currency: data.currency || '৳',
                 orderPrefix: data.order_prefix || 'NV'
@@ -95,4 +96,4 @@ function updateCartCount() {
     }
 }
 
-console.log('✅ Static shared script loaded (v4)');
+console.log('✅ Static shared script loaded (v5 — BUG FIXED)');

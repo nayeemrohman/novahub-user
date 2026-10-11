@@ -1,5 +1,5 @@
 // ============================================================
-// NOVAHUB — Supabase Configuration (v5)
+// NOVAHUB — Supabase Configuration (v6 — BUG FIXED)
 // Domain: novahubgadgets.com
 // ============================================================
 
@@ -21,7 +21,7 @@ window.settings = {
     outsideDhakaCharge: 120,
     footerDescription: 'Premium Gadgets & Electronics Store in Bangladesh. Latest tech at best prices.',
     
-    // ===== META PIXEL + CAPI (Hardcoded) =====
+    // ===== META PIXEL + CAPI (Hardcoded default) =====
     metaPixelId: '1072007485675742',
     metaPixelEnabled: true,
     metaCapiUrl: '/api/meta-capi'
@@ -97,8 +97,12 @@ async function loadSettings() {
                 insideDhakaCharge: data.inside_dhaka_charge || 60,
                 outsideDhakaCharge: data.outside_dhaka_charge || 120,
                 footerDescription: data.footer_description || '',
-                webhookUrl: data.webhook_url || ''
-                // metaPixelId, metaPixelEnabled, metaCapiUrl — HARDCODED above, don't override
+                webhookUrl: data.webhook_url || '',
+                // ✅ FIX: Dynamic pixel from DB (fallback to hardcoded)
+                metaPixelId: data.meta_pixel_id || window.settings.metaPixelId || null,
+                metaPixelEnabled: data.meta_pixel_enabled !== undefined 
+                    ? data.meta_pixel_enabled 
+                    : window.settings.metaPixelEnabled
             };
         }
     } catch (error) {
@@ -172,7 +176,8 @@ function showToast(message, type) {
     
     const existing = container.querySelectorAll('.toast');
     existing.forEach(el => {
-        if (el.textContent.trim() === message.trim()) el.remove();
+        const msgEl = el.querySelector('.toast-message');
+        if (msgEl && msgEl.textContent.trim() === message.trim()) el.remove();
     });
     
     while (container.children.length >= 3) {
@@ -212,6 +217,30 @@ function showToast(message, type) {
     });
 }
 
+// ==================== COOKIE HELPER ====================
+function getCookie(name) {
+    try {
+        const match = document.cookie.match(new RegExp('(^|;\\s*)' + name + '=([^;]*)'));
+        return match ? decodeURIComponent(match[2]) : null;
+    } catch(e) {
+        return null;
+    }
+}
+
+// ==================== FBC COOKIE FIX ====================
+// Meta Pixel sets _fbc only when fbclid URL param exists.
+// This ensures _fbc is always set for first-touch attribution.
+(function ensureFbcCookie() {
+    try {
+        const params = new URLSearchParams(window.location.search);
+        const fbclid = params.get('fbclid');
+        if (fbclid && !getCookie('_fbc')) {
+            const fbcValue = 'fb.1.' + Date.now() + '.' + fbclid;
+            document.cookie = '_fbc=' + fbcValue + '; path=/; max-age=' + (90 * 24 * 60 * 60) + '; SameSite=Lax';
+        }
+    } catch(e) {}
+})();
+
 // ==================== EXPORTS ====================
 window.supabaseClient = supabaseClient;
 window.getCurrentUser = getCurrentUser;
@@ -225,5 +254,6 @@ window.generateOrderId = generateOrderId;
 window.generateItemKey = generateItemKey;
 window.areVariantsEqual = areVariantsEqual;
 window.showToast = showToast;
+window.getCookie = getCookie;
 
-console.log('✅ Supabase Config loaded (v5 — Pixel + CAPI Hardcoded)');
+console.log('✅ Supabase Config loaded (v6 — BUG FIXED)');

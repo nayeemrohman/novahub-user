@@ -1,16 +1,7 @@
 // ============================================================
-// NOVAHUB — Profile Page Script (v7 — Professional Redesign)
-// Features:
-//   ✅ Edit Name (Modal)
-//   ✅ Edit Phone (Modal with validation)
-//   ✅ Edit Location (Modal with Division→District→Upazila cascade)
-//   ✅ Photo Upload to Cloudinary
-//   ✅ Live DOM updates
-//   ✅ Orders with modern empty state
-//   ✅ Card-style headers with icons
+// NOVAHUB — Profile Page Script (v8 — BUG FIXED)
 // ============================================================
 
-// ==================== CLOUDINARY CONFIG ====================
 const CLOUDINARY_CONFIG = {
     cloudName: 'gl3cjwsz',
     uploadPreset: 'novahub_unsigned',
@@ -19,12 +10,12 @@ const CLOUDINARY_CONFIG = {
     allowedTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
 };
 
-// ==================== GLOBAL ====================
 let currentUser = null;
 let currentProfile = null;
 let userOrders = [];
 let activeTab = 'info';
 let isUploading = false;
+let _photoUploadInitialized = false; // ✅ FIX: prevent duplicate listeners
 
 // ============================================================
 // INIT
@@ -64,6 +55,7 @@ async function loadSettings() {
         
         if (data) {
             window.settings = {
+                ...window.settings,
                 currency: data.currency || '৳',
                 ...data
             };
@@ -429,7 +421,6 @@ function renderSettingsTab(container) {
                 <h3>Account Settings</h3>
             </div>
             
-            <!-- NAME -->
             <div class="setting-row" onclick="openEditNameModal()">
                 <div class="setting-info">
                     <div class="setting-icon"><i class="fas fa-signature"></i></div>
@@ -441,7 +432,6 @@ function renderSettingsTab(container) {
                 <i class="fas fa-chevron-right setting-arrow"></i>
             </div>
             
-            <!-- EMAIL (Read-only) -->
             <div class="setting-row readonly">
                 <div class="setting-info">
                     <div class="setting-icon"><i class="fas fa-envelope"></i></div>
@@ -453,7 +443,6 @@ function renderSettingsTab(container) {
                 <i class="fas fa-lock setting-lock"></i>
             </div>
             
-            <!-- PHONE -->
             <div class="setting-row" onclick="openEditPhoneModal()">
                 <div class="setting-info">
                     <div class="setting-icon"><i class="fas fa-phone"></i></div>
@@ -465,7 +454,6 @@ function renderSettingsTab(container) {
                 <i class="fas fa-chevron-right setting-arrow"></i>
             </div>
             
-            <!-- ADDRESS -->
             <div class="setting-row" onclick="openEditLocationModal()">
                 <div class="setting-info">
                     <div class="setting-icon"><i class="fas fa-map-marker-alt"></i></div>
@@ -521,13 +509,11 @@ function setupAllModals() {
         const modal = document.getElementById(id);
         if (!modal) return;
         
-        // Close on overlay click
         modal.addEventListener('click', (e) => {
             if (e.target === modal) closeModal(id);
         });
     });
     
-    // ESC to close any open modal
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             modals.forEach(id => {
@@ -537,7 +523,6 @@ function setupAllModals() {
         }
     });
     
-    // Name: Enter to save
     const nameInput = document.getElementById('editNameInput');
     if (nameInput) {
         nameInput.addEventListener('keypress', (e) => {
@@ -546,7 +531,6 @@ function setupAllModals() {
         nameInput.addEventListener('input', () => clearFieldError('editNameError'));
     }
     
-    // Phone: Enter to save
     const phoneInput = document.getElementById('editPhoneInput');
     if (phoneInput) {
         phoneInput.addEventListener('keypress', (e) => {
@@ -770,12 +754,10 @@ function setupLocationDropdowns() {
     
     if (!divSelect || !distSelect || !upSelect) return;
     
-    // Populate divisions
     const divisions = Object.keys(LOCATION_DATA.bangladesh.levels);
     divSelect.innerHTML = '<option value="">Select Division</option>' +
         divisions.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('');
     
-    // Division change → populate districts
     divSelect.addEventListener('change', () => {
         const div = divSelect.value;
         
@@ -796,7 +778,6 @@ function setupLocationDropdowns() {
         upSelect.disabled = true;
     });
     
-    // District change → populate upazilas
     distSelect.addEventListener('change', () => {
         const div = divSelect.value;
         const dist = distSelect.value;
@@ -815,10 +796,8 @@ function setupLocationDropdowns() {
         upSelect.disabled = false;
     });
     
-    // Upazila change → clear error
     upSelect.addEventListener('change', () => clearFieldError('editLocationError'));
     
-    // Village input
     const villageInput = document.getElementById('editVillage');
     if (villageInput) {
         villageInput.addEventListener('input', () => clearFieldError('editLocationError'));
@@ -839,7 +818,6 @@ function openEditLocationModal() {
     
     clearFieldError('editLocationError');
     
-    // Reset selects to empty first
     divSelect.value = '';
     distSelect.innerHTML = '<option value="">Select District</option>';
     distSelect.disabled = true;
@@ -848,7 +826,6 @@ function openEditLocationModal() {
     if (villageInput) villageInput.value = '';
     if (addressInput) addressInput.value = '';
     
-    // Prefill current values with cascade
     if (currentProfile.division && LOCATION_DATA.bangladesh.levels[currentProfile.division]) {
         divSelect.value = currentProfile.division;
         
@@ -896,7 +873,6 @@ async function saveNewLocation() {
     const village = villageInput.value.trim();
     const fullAddress = addressInput.value.trim();
     
-    // Validation
     if (!division) {
         showFieldError('editLocationError', 'Please select a division');
         divSelect.focus();
@@ -918,7 +894,6 @@ async function saveNewLocation() {
         return;
     }
     
-    // Check if unchanged
     const isSame = 
         division === currentProfile.division &&
         district === currentProfile.district &&
@@ -950,7 +925,6 @@ async function saveNewLocation() {
         
         if (error) throw error;
         
-        // Update local state
         currentProfile.division = division;
         currentProfile.district = district;
         currentProfile.upazila = upazila;
@@ -982,7 +956,6 @@ function updateAddressInDOM() {
     const infoRowAddress = document.querySelector('#infoRowAddress .info-row-value');
     if (infoRowAddress) infoRowAddress.textContent = addressText;
     
-    // Full address row — render or update
     const infoRowFull = document.getElementById('infoRowFullAddress');
     if (currentProfile.full_address) {
         if (infoRowFull) {
@@ -1004,11 +977,14 @@ function setupPhoneInput() {
 }
 
 // ============================================================
-// PHOTO UPLOAD
+// PHOTO UPLOAD (with idempotent guard)
 // ============================================================
 function setupPhotoUpload() {
     const input = document.getElementById('profilePhotoInput');
     if (!input) return;
+    // ✅ FIX: Prevent duplicate listeners
+    if (_photoUploadInitialized) return;
+    _photoUploadInitialized = true;
     input.addEventListener('change', handlePhotoSelect);
 }
 
@@ -1156,4 +1132,4 @@ function formatPrice(price) {
     return curr + n.toLocaleString('en-BD', { maximumFractionDigits: 2 });
 }
 
-console.log('✅ Profile script loaded (v7 — Professional Redesign)');
+console.log('✅ Profile script loaded (v8 — BUG FIXED)');

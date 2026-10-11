@@ -1,6 +1,5 @@
 // ============================================================
-// NOVAHUB — Product Page Script (v5)
-// Fixed: Uses CartModule, prevents double-click, safer SEO
+// NOVAHUB — Product Page Script (v7 — BUG FIXED)
 // ============================================================
 
 let product = null;
@@ -48,9 +47,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.log('🚀 Product page initializing...');
     
     const params = new URLSearchParams(window.location.search);
-    const productId = params.get('id');
+    const productIdOrSlug = params.get('id');
     
-    if (!productId) {
+    if (!productIdOrSlug) {
         showToast('Product not found', 'error');
         setTimeout(() => window.location.href = 'index.html', 1500);
         return;
@@ -59,7 +58,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadSettings();
     await updateAuthUI();
     updateHeaderProfile();
-    await loadProduct(productId);
+    await loadProduct(productIdOrSlug);
     setupLightbox();
     
     console.log('✅ Product page ready');
@@ -73,6 +72,7 @@ async function loadSettings() {
         
         if (data) {
             window.settings = {
+                ...window.settings,
                 shopName: data.shop_name || 'Novahub',
                 currency: data.currency || '৳',
                 orderPrefix: data.order_prefix || 'NV',
@@ -86,12 +86,33 @@ async function loadSettings() {
     }
 }
 
+// ==================== UUID DETECTION ====================
+function isUUID(str) {
+    if (!str) return false;
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+}
+
 // ==================== LOAD PRODUCT ====================
-async function loadProduct(productId) {
+async function loadProduct(productIdOrSlug) {
     try {
-        const { data, error } = await supabaseClient
+        const lookupIsUUID = isUUID(productIdOrSlug);
+        let query = supabaseClient
             .from('products').select('*')
-            .eq('id', productId).eq('is_active', true).single();
+            .eq('is_active', true);
+        
+        let { data, error } = lookupIsUUID
+            ? await query.eq('id', productIdOrSlug).single()
+            : await query.eq('seo_slug', productIdOrSlug).single();
+        
+        if ((error || !data) && !lookupIsUUID) {
+            const fallback = await supabaseClient
+                .from('products').select('*')
+                .eq('id', productIdOrSlug).eq('is_active', true).single();
+            if (fallback.data) {
+                data = fallback.data;
+                error = null;
+            }
+        }
         
         if (error || !data) {
             showToast('Product not found', 'error');
@@ -120,6 +141,7 @@ async function loadProduct(productId) {
         setupReviewForm();
         await loadRelatedProducts();
         
+        // ✅ FIX: Track ViewContent
         if (typeof window.trackViewContent === 'function') {
             window.trackViewContent(product);
         }
@@ -137,37 +159,55 @@ function updateSEO() {
     const price = safeParseNumber(product.price);
     const oldPrice = safeParseNumber(product.old_price);
     const inStock = product.stock_status !== 'out_of_stock';
-    const productUrl = 'https://novahubgadgets.com/product.html?id=' + product.id;
-    const productImage = productImages[0] || 'https://novahubgadgets.com/assets/images/logo.jpg';
     
-    const shortDesc = product.description 
+    const slugForUrl = product.seo_slug && String(product.seo_slug).trim();
+    const canonicalFromDb = product.canonical_url && String(product.canonical_url).trim();
+    const productUrl = canonicalFromDb 
+        || (slugForUrl
+            ? 'https://novahubgadgets.com/product/' + encodeURIComponent(slugForUrl)
+            : 'https://novahubgadgets.com/product.html?id=' + product.id);
+    
+    const productImage = 
+        (product.og_image && String(product.og_image).trim())
+        || productImages[0] 
+        || 'https://novahubgadgets.com/assets/images/logo.jpg';
+    
+    const defaultTitle = product.title + ' – ৳' + price + ' | Novahub Bangladesh';
+    const pageTitle = (product.seo_title && String(product.seo_title).trim()) || defaultTitle;
+    
+    const defaultDesc = product.description 
         ? product.description.replace(/\s+/g, ' ').trim().substring(0, 155)
         : 'Buy ' + product.title + ' at ৳' + price + ' in Bangladesh. Cash on Delivery available. Order now from Novahub.';
+    const shortDesc = (product.seo_description && String(product.seo_description).trim()) || defaultDesc;
     
-    const pageTitle = product.title + ' – ৳' + price + ' | Novahub Bangladesh';
+    const keywords = (product.seo_keywords && String(product.seo_keywords).trim()) || null;
+    
+    const ogTitleValue = (product.og_title && String(product.og_title).trim()) || pageTitle;
+    const ogDescValue = (product.og_description && String(product.og_description).trim()) || shortDesc;
     
     document.title = pageTitle;
     
     setMeta('name', 'title', pageTitle);
     setMeta('name', 'description', shortDesc);
+    if (keywords) setMeta('name', 'keywords', keywords);
     
     const canonical = document.getElementById('canonicalLink');
     if (canonical) canonical.href = productUrl;
     
     setMetaById('og:url', productUrl);
-    setMetaById('og:title', pageTitle);
-    setMetaById('og:description', shortDesc);
+    setMetaById('og:title', ogTitleValue);
+    setMetaById('og:description', ogDescValue);
     setMetaById('og:image', productImage);
     
     setMetaById('twitter:url', productUrl);
-    setMetaById('twitter:title', pageTitle);
-    setMetaById('twitter:description', shortDesc);
+    setMetaById('twitter:title', ogTitleValue);
+    setMetaById('twitter:description', ogDescValue);
     setMetaById('twitter:image', productImage);
     setMetaById('twitter:data1', '৳' + price);
     setMetaById('twitter:data2', inStock ? 'In Stock' : 'Out of Stock');
     
-    setMetaById('whatsapp:title', pageTitle);
-    setMetaById('whatsapp:description', shortDesc);
+    setMetaById('whatsapp:title', ogTitleValue);
+    setMetaById('whatsapp:description', ogDescValue);
     setMetaById('whatsapp:image', productImage);
     
     const schema = {
@@ -377,7 +417,6 @@ function renderProduct() {
             '</div>' +
         '</div>';
     
-    // Attach event listeners (safer than inline onclick)
     const mainImgWrap = document.getElementById('mainImageWrap');
     if (mainImgWrap) {
         mainImgWrap.addEventListener('click', () => {
@@ -394,14 +433,12 @@ function renderProduct() {
         });
     }
     
-    // Variant buttons
     container.querySelectorAll('.variant-option').forEach(el => {
         el.addEventListener('click', () => {
             selectVariant(el);
         });
     });
     
-    // Action buttons
     const addBtn = document.getElementById('addToCartBtn');
     if (addBtn) addBtn.addEventListener('click', handleAddToCart);
     
@@ -503,7 +540,7 @@ function scrollToVariants() {
 window.scrollToVariants = scrollToVariants;
 
 // ============================================================
-// ADD TO CART (with double-click prevention)
+// ADD TO CART
 // ============================================================
 function handleAddToCart() {
     if (isAddingToCart) return;
@@ -546,7 +583,7 @@ function handleAddToCart() {
 window.handleAddToCart = handleAddToCart;
 
 // ============================================================
-// BUY NOW (with double-click prevention)
+// BUY NOW
 // ============================================================
 function handleBuyNow() {
     if (isBuyingNow) return;
@@ -725,18 +762,19 @@ async function loadRelatedProducts() {
             const hasDiscount = oldPrice > price;
             const discountPercent = hasDiscount ? Math.round(((oldPrice - price) / oldPrice) * 100) : 0;
             const isOutOfStock = p.stock_status === 'out_of_stock';
+            const linkId = (p.seo_slug && String(p.seo_slug).trim()) ? p.seo_slug : p.id;
             
             return '<div class="product-card">' +
                 '<div class="product-image-wrapper">' +
                     (hasDiscount ? '<div class="product-badge">-' + discountPercent + '%</div>' : '') +
                     '<img src="' + escapeHtml(p.image_url || 'https://via.placeholder.com/300') + '" ' +
                         'alt="' + escapeHtml(p.title) + '" class="product-image" loading="lazy" ' +
-                        'onclick="window.location.href=\'product.html?id=' + p.id + '\'" ' +
+                        'onclick="window.location.href=\'product.html?id=' + encodeURIComponent(linkId) + '\'" ' +
                         'onerror="this.src=\'https://via.placeholder.com/300\'">' +
                     (isOutOfStock ? '<div class="stock-badge out-of-stock">Out of Stock</div>' : '') +
                 '</div>' +
                 '<div class="product-info">' +
-                    '<h3 class="product-title" onclick="window.location.href=\'product.html?id=' + p.id + '\'">' + escapeHtml(p.title) + '</h3>' +
+                    '<h3 class="product-title" onclick="window.location.href=\'product.html?id=' + encodeURIComponent(linkId) + '\'">' + escapeHtml(p.title) + '</h3>' +
                     '<div class="product-price">' +
                         '<span class="current-price">' + formatPrice(price) + '</span>' +
                         (hasDiscount ? '<span class="old-price">' + formatPrice(oldPrice) + '</span>' : '') +
@@ -1000,4 +1038,4 @@ async function submitReview() {
 }
 window.submitReview = submitReview;
 
-console.log('✅ Product page loaded (v5 — CartModule integrated)');
+console.log('✅ Product page loaded (v7 — BUG FIXED)');

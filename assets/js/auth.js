@@ -1,5 +1,5 @@
 // ============================================================
-// NOVAHUB — Auth + Pixel + CAPI Helpers (v7)
+// NOVAHUB — Auth + Pixel + CAPI Helpers (v8 — BUG FIXED)
 // ============================================================
 
 // ============================================================
@@ -248,18 +248,27 @@ window.trackViewContent = function(product) {
     } catch(e) {}
 };
 
-window.trackAddToCart = function(product, quantity) {
+// ✅ FIX: Include variant info in AddToCart
+window.trackAddToCart = function(product, quantity, selectedVariant) {
     quantity = quantity || 1;
     if (typeof fbq !== 'function') return;
     try {
-        fbq('track', 'AddToCart', {
+        const eventData = {
             content_ids: [product.id],
             content_name: product.title,
             content_type: 'product',
             value: (parseFloat(product.price) || 0) * quantity,
             currency: 'BDT',
             quantity: quantity
-        });
+        };
+        
+        // ✅ NEW: Add variant info as custom content_name suffix
+        if (selectedVariant && Object.keys(selectedVariant).length > 0) {
+            const variantText = Object.entries(selectedVariant).map(([k, v]) => k + ':' + v).join(', ');
+            eventData.content_name = product.title + ' (' + variantText + ')';
+        }
+        
+        fbq('track', 'AddToCart', eventData);
     } catch(e) {}
 };
 
@@ -280,7 +289,6 @@ window.trackInitiateCheckout = function(items, total) {
 // TRACK PURCHASE — Pixel + Conversion API
 // ============================================================
 window.trackPurchase = function(orderId, items, total, orderData) {
-    // ===== 1. Browser Pixel =====
     if (typeof fbq === 'function') {
         try {
             fbq('track', 'Purchase', {
@@ -296,7 +304,6 @@ window.trackPurchase = function(orderId, items, total, orderData) {
         }
     }
 
-    // ===== 2. Conversion API =====
     sendPurchaseToCAPI(orderId, items, total, orderData).catch(err => {
         console.warn('CAPI send failed:', err.message);
     });
@@ -336,7 +343,7 @@ async function sendPurchaseToCAPI(orderId, items, total, orderData) {
         contents: items.map(i => ({
             id: i.productId,
             quantity: i.quantity,
-            item_price: i.price
+            item_price: parseFloat(i.price) || 0
         }))
     };
 
@@ -365,15 +372,6 @@ async function sendPurchaseToCAPI(orderId, items, total, orderData) {
     }
 }
 
-function getCookie(name) {
-    try {
-        const match = document.cookie.match(new RegExp('(^|;\\s*)' + name + '=([^;]*)'));
-        return match ? decodeURIComponent(match[2]) : null;
-    } catch(e) {
-        return null;
-    }
-}
-
 // ============================================================
 // AUTO BOOT
 // ============================================================
@@ -391,4 +389,4 @@ window.updateAuthUI = updateAuthUI;
 window.syncGoogleProfileData = syncGoogleProfileData;
 window.loadAndInjectSEO = loadAndInjectSEO;
 
-console.log('✅ Auth + Pixel + CAPI loaded (v7)');
+console.log('✅ Auth + Pixel + CAPI loaded (v8 — BUG FIXED)');

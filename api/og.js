@@ -1,21 +1,17 @@
 // ============================================================
 // NOVAHUB — Dynamic OG Meta Tag Generator
 // Vercel Serverless Function
-// URL: https://novahubgadgets.com/og?id=PRODUCT_ID
+// URL: https://novahubgadgets.com/og?id=PRODUCT_ID_OR_SLUG
 // ============================================================
 
-const SUPABASE_URL = 'https://oxnfiueqmvggtjtciqbn.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_jYBypv_FEbLfWYDqFEeEkw_IA2WmZMk';
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://oxnfiueqmvggtjtciqbn.supabase.co';
+const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_jYBypv_FEbLfWYDqFEeEkw_IA2WmZMk';
 
 const SITE_NAME = 'Novahub';
 const SITE_URL = 'https://novahubgadgets.com';
-const DEFAULT_IMAGE = `${SITE_URL}/assets/images/logo.jpg`;
+const DEFAULT_IMAGE = SITE_URL + '/assets/images/logo.jpg';
 const DEFAULT_TITLE = 'Novahub – Best Gadget Accessories Shop in Bangladesh';
 const DEFAULT_DESCRIPTION = 'Shop premium gadget accessories at Novahub – Headphones, Gaming Gear, Power Banks & more at best prices.';
-
-// ============================================================
-// HELPERS
-// ============================================================
 
 function escapeHtml(str) {
     if (!str) return '';
@@ -27,7 +23,8 @@ function escapeHtml(str) {
         .replace(/'/g, '&#039;');
 }
 
-function truncate(str, length = 160) {
+function truncate(str, length) {
+    length = length || 160;
     if (!str) return '';
     const clean = String(str).replace(/\s+/g, ' ').trim();
     if (clean.length <= length) return clean;
@@ -39,21 +36,23 @@ function formatPrice(price) {
     return '৳' + n.toLocaleString('en-BD', { maximumFractionDigits: 0 });
 }
 
-// ============================================================
-// FETCH PRODUCT
-// ============================================================
+function isUUID(str) {
+    if (!str) return false;
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+}
 
-async function fetchProduct(productId) {
-    if (!productId) return null;
+async function fetchProduct(idOrSlug) {
+    if (!idOrSlug) return null;
 
     try {
-        const url = `${SUPABASE_URL}/rest/v1/products?id=eq.${encodeURIComponent(productId)}&is_active=eq.true&select=*`;
+        const col = isUUID(idOrSlug) ? 'id' : 'seo_slug';
+        const url = SUPABASE_URL + '/rest/v1/products?' + col + '=eq.' + encodeURIComponent(idOrSlug) + '&is_active=eq.true&select=*';
 
         const response = await fetch(url, {
             method: 'GET',
             headers: {
                 'apikey': SUPABASE_KEY,
-                'Authorization': `Bearer ${SUPABASE_KEY}`,
+                'Authorization': 'Bearer ' + SUPABASE_KEY,
                 'Accept': 'application/json'
             }
         });
@@ -64,14 +63,10 @@ async function fetchProduct(productId) {
         if (!Array.isArray(data) || data.length === 0) return null;
         return data[0];
     } catch (error) {
-        console.error('Fetch error:', error);
+        console.error('Fetch error:', error.message);
         return null;
     }
 }
-
-// ============================================================
-// BUILD HTML
-// ============================================================
 
 function buildHTML(product) {
     let title = DEFAULT_TITLE;
@@ -82,24 +77,41 @@ function buildHTML(product) {
     let availability = 'in stock';
 
     if (product) {
-        const productUrl = `${SITE_URL}/product.html?id=${product.id}`;
+        const slug = (product.seo_slug && String(product.seo_slug).trim()) || null;
+        const canonicalFromDb = (product.canonical_url && String(product.canonical_url).trim()) || null;
+        const productUrl = canonicalFromDb
+            || (slug
+                ? SITE_URL + '/product/' + encodeURIComponent(slug)
+                : SITE_URL + '/product.html?id=' + product.id);
         url = productUrl;
 
         const productPrice = parseFloat(product.price) || 0;
-        title = `${product.title} – ${formatPrice(productPrice)} | ${SITE_NAME}`;
 
-        if (product.description && product.description.trim()) {
+        const autoTitle = product.title + ' – ' + formatPrice(productPrice) + ' | ' + SITE_NAME;
+        title = (product.seo_title && String(product.seo_title).trim()) || autoTitle;
+
+        if (product.seo_description && String(product.seo_description).trim()) {
+            description = truncate(product.seo_description, 160);
+        } else if (product.description && product.description.trim()) {
             description = truncate(product.description, 160);
         } else {
-            description = `Buy ${product.title} at ${formatPrice(productPrice)} in Bangladesh. Cash on Delivery, Fast Shipping. Order now from Novahub.`;
+            description = 'Buy ' + product.title + ' at ' + formatPrice(productPrice) + ' in Bangladesh. Cash on Delivery, Fast Shipping. Order now from Novahub.';
         }
 
-        if (product.image_url && product.image_url.trim()) {
+        const ogTitle = (product.og_title && String(product.og_title).trim()) || title;
+        const ogDescription = (product.og_description && String(product.og_description).trim()) || description;
+
+        if (product.og_image && String(product.og_image).trim()) {
+            image = product.og_image;
+        } else if (product.image_url && product.image_url.trim()) {
             image = product.image_url;
         }
 
         price = productPrice.toString();
         availability = product.stock_status === 'out_of_stock' ? 'out of stock' : 'in stock';
+
+        title = ogTitle;
+        description = ogDescription;
     }
 
     const safeTitle = escapeHtml(title);
@@ -107,60 +119,56 @@ function buildHTML(product) {
     const safeImage = escapeHtml(image);
     const safeUrl = escapeHtml(url);
 
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
-    <title>${safeTitle}</title>
-    <meta name="description" content="${safeDescription}">
-    
-    <meta property="og:type" content="product">
-    <meta property="og:site_name" content="${SITE_NAME}">
-    <meta property="og:url" content="${safeUrl}">
-    <meta property="og:title" content="${safeTitle}">
-    <meta property="og:description" content="${safeDescription}">
-    <meta property="og:image" content="${safeImage}">
-    <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="630">
-    <meta property="og:image:alt" content="${safeTitle}">
-    <meta property="og:locale" content="en_US">
-    
-    ${price ? `<meta property="product:price:amount" content="${price}">
-    <meta property="product:price:currency" content="BDT">` : ''}
-    ${availability ? `<meta property="product:availability" content="${availability}">` : ''}
-    
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:site" content="@novahub">
-    <meta name="twitter:title" content="${safeTitle}">
-    <meta name="twitter:description" content="${safeDescription}">
-    <meta name="twitter:image" content="${safeImage}">
-    
-    <meta itemprop="name" content="${safeTitle}">
-    <meta itemprop="description" content="${safeDescription}">
-    <meta itemprop="image" content="${safeImage}">
-    
-    <link rel="canonical" href="${safeUrl}">
-    <meta http-equiv="refresh" content="0;url=${safeUrl}">
-    <script>window.location.replace("${safeUrl}");</script>
-</head>
-<body>
-    <p>Redirecting to <a href="${safeUrl}">${safeTitle}</a>...</p>
-</body>
-</html>`;
+    return '<!DOCTYPE html>\n' +
+'<html lang="en">\n' +
+'<head>\n' +
+'    <meta charset="UTF-8">\n' +
+'    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n' +
+'    \n' +
+'    <title>' + safeTitle + '</title>\n' +
+'    <meta name="description" content="' + safeDescription + '">\n' +
+'    \n' +
+'    <meta property="og:type" content="product">\n' +
+'    <meta property="og:site_name" content="' + SITE_NAME + '">\n' +
+'    <meta property="og:url" content="' + safeUrl + '">\n' +
+'    <meta property="og:title" content="' + safeTitle + '">\n' +
+'    <meta property="og:description" content="' + safeDescription + '">\n' +
+'    <meta property="og:image" content="' + safeImage + '">\n' +
+'    <meta property="og:image:width" content="1200">\n' +
+'    <meta property="og:image:height" content="630">\n' +
+'    <meta property="og:image:alt" content="' + safeTitle + '">\n' +
+'    <meta property="og:locale" content="en_US">\n' +
+'    \n' +
+(price ? '    <meta property="product:price:amount" content="' + price + '">\n' +
+'    <meta property="product:price:currency" content="BDT">\n' : '') +
+(availability ? '    <meta property="product:availability" content="' + availability + '">\n' : '') +
+'    \n' +
+'    <meta name="twitter:card" content="summary_large_image">\n' +
+'    <meta name="twitter:site" content="@novahub">\n' +
+'    <meta name="twitter:title" content="' + safeTitle + '">\n' +
+'    <meta name="twitter:description" content="' + safeDescription + '">\n' +
+'    <meta name="twitter:image" content="' + safeImage + '">\n' +
+'    \n' +
+'    <meta itemprop="name" content="' + safeTitle + '">\n' +
+'    <meta itemprop="description" content="' + safeDescription + '">\n' +
+'    <meta itemprop="image" content="' + safeImage + '">\n' +
+'    \n' +
+'    <link rel="canonical" href="' + safeUrl + '">\n' +
+'    <meta http-equiv="refresh" content="0;url=' + safeUrl + '">\n' +
+'    <script>window.location.replace("' + safeUrl + '");<\/script>\n' +
+'</head>\n' +
+'<body>\n' +
+'    <p>Redirecting to <a href="' + safeUrl + '">' + safeTitle + '</a>...</p>\n' +
+'</body>\n' +
+'</html>';
 }
-
-// ============================================================
-// MAIN HANDLER
-// ============================================================
 
 module.exports = async (req, res) => {
     try {
-        const url = new URL(req.url, `https://${req.headers.host || 'novahubgadgets.com'}`);
-        const productId = url.searchParams.get('id');
+        const url = new URL(req.url, 'https://' + (req.headers.host || 'novahubgadgets.com'));
+        const idOrSlug = url.searchParams.get('id');
 
-        const product = productId ? await fetchProduct(productId) : null;
+        const product = idOrSlug ? await fetchProduct(idOrSlug) : null;
         const html = buildHTML(product);
 
         res.setHeader('Content-Type', 'text/html; charset=utf-8');

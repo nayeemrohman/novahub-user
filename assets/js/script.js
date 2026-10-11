@@ -1,5 +1,5 @@
 // ============================================================
-// NOVAHUB — Homepage Script (v5 — Category Filter Fixed)
+// NOVAHUB — Homepage Script (v7 — BUG FIXED)
 // Domain: novahubgadgets.com
 // ============================================================
 
@@ -34,20 +34,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderLayoutSections();
     renderSidebarCollections();
     
-    // Handle URL params
     const params = new URLSearchParams(window.location.search);
     
     if (params.get('openCart') === '1') {
         setTimeout(() => CartModule.openCartSidebar(), 500);
     }
     
-    // Handle ?category=xxx (shareable URL)
     const catId = params.get('category');
     if (catId) {
         setTimeout(() => applyCategoryFilter(catId, false), 300);
     }
     
-    // Handle browser back/forward
     window.addEventListener('popstate', () => {
         const p = new URLSearchParams(window.location.search);
         const cat = p.get('category');
@@ -157,6 +154,7 @@ async function loadSettings() {
         
         if (data) {
             window.settings = {
+                ...window.settings,
                 shopName: data.shop_name || 'Novahub',
                 currency: data.currency || '৳',
                 orderPrefix: data.order_prefix || 'NV',
@@ -477,7 +475,6 @@ function renderCategories() {
         return;
     }
     
-    // Get current category from URL
     const params = new URLSearchParams(window.location.search);
     const activeCatId = params.get('category');
     
@@ -578,7 +575,6 @@ function renderAllProducts() {
     const section = document.getElementById('allSection');
     if (!grid) return;
     
-    // Reset section title
     const title = section?.querySelector('.section-title');
     if (title) {
         title.innerHTML = 'All Products';
@@ -658,15 +654,26 @@ function quickAddToCart(productId) {
 window.quickAddToCart = quickAddToCart;
 
 // ============================================================
-// OPEN PRODUCT
+// OPEN PRODUCT — with slug support + ViewContent tracking
 // ============================================================
 function openProduct(productId) {
-    window.location.href = `product.html?id=${productId}`;
+    // ✅ FIX: Track ViewContent before navigation
+    const product = allProducts.find(p => p.id === productId);
+    if (product && typeof window.trackViewContent === 'function') {
+        window.trackViewContent(product);
+    }
+    
+    // ✅ FIX: Use slug if available
+    const linkId = (product && product.seo_slug && String(product.seo_slug).trim()) 
+        ? product.seo_slug 
+        : productId;
+    
+    window.location.href = `product.html?id=${encodeURIComponent(linkId)}`;
 }
 window.openProduct = openProduct;
 
 // ============================================================
-// FILTER BY CATEGORY — MAIN FUNCTION
+// FILTER BY CATEGORY
 // ============================================================
 function filterByCategory(categoryId) {
     applyCategoryFilter(categoryId, true);
@@ -674,7 +681,6 @@ function filterByCategory(categoryId) {
 window.filterByCategory = filterByCategory;
 
 function applyCategoryFilter(categoryId, updateURL) {
-    // Find the category
     const category = allCategories.find(c => c.id === categoryId);
     if (!category) {
         console.warn('Category not found:', categoryId);
@@ -682,15 +688,15 @@ function applyCategoryFilter(categoryId, updateURL) {
         return;
     }
     
-    // Filter products by category_ids
     const filtered = allProducts.filter(p => {
+        if (p.category_id === categoryId) return true;
+        
         const catIds = Array.isArray(p.category_ids) ? p.category_ids : [];
         return catIds.includes(categoryId);
     });
     
     console.log(`📂 Filtered "${category.name}": ${filtered.length} products`);
     
-    // Get the All Products section
     const allSection = document.getElementById('allSection');
     const grid = document.getElementById('allProductsGrid');
     
@@ -699,7 +705,6 @@ function applyCategoryFilter(categoryId, updateURL) {
         return;
     }
     
-    // Update section title with category name + Clear button
     const sectionTitle = allSection.querySelector('.section-title');
     if (sectionTitle) {
         sectionTitle.innerHTML = `
@@ -710,7 +715,6 @@ function applyCategoryFilter(categoryId, updateURL) {
         `;
     }
     
-    // Render filtered products
     if (filtered.length === 0) {
         grid.innerHTML = `
             <div class="no-products">
@@ -725,28 +729,23 @@ function applyCategoryFilter(categoryId, updateURL) {
         grid.innerHTML = filtered.map(p => renderProductCard(p)).join('');
     }
     
-    // Update URL (for sharing + browser back button)
     if (updateURL) {
         const url = new URL(window.location);
         url.searchParams.set('category', categoryId);
         window.history.pushState({ categoryId }, '', url);
     }
     
-    // Update category card active states
     document.querySelectorAll('.category-card').forEach(card => {
         const cardCatId = card.dataset.categoryId;
         card.classList.toggle('active-category', cardCatId === categoryId);
     });
     
-    // Scroll to products section
     setTimeout(() => {
         allSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 100);
     
-    // Show toast
     showToast(`${category.name}: ${filtered.length} products`, 'info');
     
-    // Close sidebar if open
     if (window.closeMenu) window.closeMenu();
 }
 
@@ -754,33 +753,28 @@ function applyCategoryFilter(categoryId, updateURL) {
 // CLEAR CATEGORY FILTER
 // ============================================================
 function clearCategoryFilter(updateURL = true) {
-    // Reset section title
     const allSection = document.getElementById('allSection');
     const sectionTitle = allSection?.querySelector('.section-title');
     if (sectionTitle) {
         sectionTitle.innerHTML = 'All Products';
     }
     
-    // Render all products
     renderAllProducts();
     
-    // Clear URL param
     if (updateURL) {
         const url = new URL(window.location);
         url.searchParams.delete('category');
         window.history.pushState({}, '', url);
     }
     
-    // Remove active state from category cards
     document.querySelectorAll('.category-card').forEach(card => {
         card.classList.remove('active-category');
     });
     
-    // Scroll to products
     allSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     
     showToast('Showing all products', 'success');
 }
 window.clearCategoryFilter = clearCategoryFilter;
 
-console.log('✅ Homepage script loaded (v5 — Category Filter Fixed)');
+console.log('✅ Homepage script loaded (v7 — BUG FIXED)');

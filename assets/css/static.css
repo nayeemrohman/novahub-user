@@ -8,7 +8,6 @@
     min-height: 100vh;
 }
 
-/* ===== HEADER COMPACT ===== */
 .header-compact .header-title {
     font-size: 1.2rem;
     font-weight: 800;
@@ -51,7 +50,6 @@
     justify-content: center;
 }
 
-/* ===== MAIN WRAPPER ===== */
 .static-wrapper {
     max-width: 800px;
     margin: 0 auto;
@@ -66,7 +64,6 @@
     border: 1px solid var(--border-light);
 }
 
-/* ===== TITLE ===== */
 .static-main-title {
     font-size: 1.8rem;
     font-weight: 800;
@@ -86,7 +83,6 @@
     font-style: italic;
 }
 
-/* ===== TEXT CONTENT ===== */
 .static-text {
     font-size: 0.98rem;
     line-height: 1.85;
@@ -159,7 +155,6 @@
     font-style: italic;
 }
 
-/* ===== RESPONSIVE ===== */
 @media (max-width: 600px) {
     .static-wrapper {
         padding: 24px 14px 40px;
@@ -212,7 +207,6 @@
     }
 }
 
-/* ===== FOOTER SPACING ===== */
 .static-page .footer {
     margin-top: 40px;
 }
@@ -223,9 +217,6 @@
     }
 }
 
-/* ============================================================
-   HEADER PROFILE ICON — Red Border
-   ============================================================ */
 #headerProfileBtn {
     border: 2px solid var(--red);
     border-radius: 50%;
