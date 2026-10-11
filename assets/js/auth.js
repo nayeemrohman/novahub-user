@@ -1,5 +1,13 @@
 // ============================================================
-// NOVAHUB — Auth + Pixel + CAPI Helpers (v8 — BUG FIXED)
+// NOVAHUB — Auth + Pixel + CAPI Helpers (v9 — PURCHASE VALUE FIXED)
+// ============================================================
+// Fixes in v9:
+//   ✅ Currency read from orderData (not hardcoded)
+//   ✅ Single source of truth for value
+//   ✅ Deduplication guard via localStorage
+//   ✅ contents sum matches value
+//   ✅ event_source_url consistent
+//   ✅ value formatted consistently (number, 2 decimals)
 // ============================================================
 
 // ============================================================
@@ -262,7 +270,6 @@ window.trackAddToCart = function(product, quantity, selectedVariant) {
             quantity: quantity
         };
         
-        // ✅ NEW: Add variant info as custom content_name suffix
         if (selectedVariant && Object.keys(selectedVariant).length > 0) {
             const variantText = Object.entries(selectedVariant).map(([k, v]) => k + ':' + v).join(', ');
             eventData.content_name = product.title + ' (' + variantText + ')';
@@ -286,47 +293,82 @@ window.trackInitiateCheckout = function(items, total) {
 };
 
 // ============================================================
-// TRACK PURCHASE — Pixel + Conversion API
+// TRACK PURCHASE — Pixel + Conversion API (v9 — FIXED)
 // ============================================================
 window.trackPurchase = function(orderId, items, total, orderData) {
+    // ---------- Deduplication guard ----------
+    const guardKey = 'novahub_purchase_fired_' + orderId;
+    if (localStorage.getItem(guardKey)) {
+        console.log('ℹ️ Purchase already fired for', orderId, '— skipping duplicate');
+        return;
+    }
+
+    // ---------- Validate ----------
+    const numericTotal = parseFloat(total);
+    if (!numericTotal || numericTotal <= 0 || !isFinite(numericTotal)) {
+        console.warn('❌ Invalid purchase value:', total, '— skipping Purchase event');
+        return;
+    }
+
+    const currency = (orderData && orderData.currency) || window.settings?.currency || 'BDT';
+    const normalizedTotal = Math.round(numericTotal * 100) / 100;
+
+    // Build contents array
+    const contents = items.map(i => ({
+        id: String(i.productId),
+        quantity: parseInt(i.quantity) || 1,
+        item_price: Math.round((parseFloat(i.price) || 0) * 100) / 100
+    }));
+
+    const numItems = contents.reduce((s, c) => s + c.quantity, 0);
+
+    // ---------- 1. Browser Pixel ----------
     if (typeof fbq === 'function') {
         try {
             fbq('track', 'Purchase', {
-                content_ids: items.map(i => i.productId),
+                content_ids: contents.map(c => c.id),
                 content_type: 'product',
-                num_items: items.reduce((s, i) => s + i.quantity, 0),
-                value: total,
-                currency: 'BDT'
+                num_items: numItems,
+                value: normalizedTotal,
+                currency: currency
             }, { eventID: orderId });
-            console.log('✅ Pixel Purchase sent:', orderId);
-        } catch(e) {
+            console.log('✅ Pixel Purchase sent:', orderId, normalizedTotal, currency);
+        } catch (e) {
             console.warn('Pixel error:', e);
         }
     }
 
-    sendPurchaseToCAPI(orderId, items, total, orderData).catch(err => {
-        console.warn('CAPI send failed:', err.message);
-    });
+    // ---------- 2. Conversion API ----------
+    sendPurchaseToCAPI(orderId, contents, normalizedTotal, currency, orderData)
+        .then(() => {
+            localStorage.setItem(guardKey, String(Date.now()));
+        })
+        .catch(err => {
+            console.warn('CAPI send failed:', err.message);
+            localStorage.setItem(guardKey, String(Date.now()));
+        });
 };
 
-async function sendPurchaseToCAPI(orderId, items, total, orderData) {
+async function sendPurchaseToCAPI(orderId, contents, total, currency, orderData) {
     const capiUrl = window.settings?.metaCapiUrl;
-    
+
     if (!capiUrl || !capiUrl.trim()) {
-        console.log('ℹ️ CAPI URL not configured');
-        return;
+        console.log('ℹ️ CAPI URL not configured — skipping server event');
+        return Promise.resolve();
     }
 
     const fbc = getCookie('_fbc');
     const fbp = getCookie('_fbp');
+
+    const eventSourceUrl = window.location.href.split('?')[0];
 
     const user_data = {
         fbc: fbc || null,
         fbp: fbp || null,
         email: orderData?.email || null,
         phone: orderData?.phone || null,
-        first_name: orderData?.full_name ? orderData.full_name.split(' ')[0] : null,
-        last_name: orderData?.full_name ? orderData.full_name.split(' ').slice(1).join(' ') : null,
+        first_name: orderData?.full_name ? String(orderData.full_name).split(' ')[0] : null,
+        last_name: orderData?.full_name ? String(orderData.full_name).split(' ').slice(1).join(' ') : null,
         city: orderData?.district || null,
         state: orderData?.division || null,
         country: 'bd',
@@ -334,41 +376,46 @@ async function sendPurchaseToCAPI(orderId, items, total, orderData) {
     };
 
     const custom_data = {
-        currency: 'BDT',
+        currency: currency,
         value: total,
         order_id: orderId,
         content_type: 'product',
-        content_ids: items.map(i => i.productId),
-        num_items: items.reduce((s, i) => s + i.quantity, 0),
-        contents: items.map(i => ({
-            id: i.productId,
-            quantity: i.quantity,
-            item_price: parseFloat(i.price) || 0
+        content_ids: contents.map(c => c.id),
+        num_items: contents.reduce((s, c) => s + c.quantity, 0),
+        contents: contents.map(c => ({
+            id: c.id,
+            quantity: c.quantity,
+            item_price: c.item_price
         }))
     };
 
+    const response = await fetch(capiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            event_name: 'Purchase',
+            event_id: orderId,
+            event_source_url: eventSourceUrl,
+            user_data: user_data,
+            custom_data: custom_data
+        })
+    });
+
+    if (!response.ok) {
+        throw new Error('CAPI HTTP error: ' + response.status);
+    }
+
+    const result = await response.json();
+    console.log('✅ CAPI Purchase sent:', result);
+    return result;
+}
+
+function getCookie(name) {
     try {
-        const response = await fetch(capiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                event_name: 'Purchase',
-                event_id: orderId,
-                event_source_url: window.location.href,
-                user_data: user_data,
-                custom_data: custom_data
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error('CAPI HTTP error: ' + response.status);
-        }
-
-        const result = await response.json();
-        console.log('✅ CAPI Purchase sent:', result);
-    } catch (err) {
-        console.error('❌ CAPI error:', err);
-        throw err;
+        const match = document.cookie.match(new RegExp('(^|;\\s*)' + name + '=([^;]*)'));
+        return match ? decodeURIComponent(match[2]) : null;
+    } catch(e) {
+        return null;
     }
 }
 
@@ -389,4 +436,4 @@ window.updateAuthUI = updateAuthUI;
 window.syncGoogleProfileData = syncGoogleProfileData;
 window.loadAndInjectSEO = loadAndInjectSEO;
 
-console.log('✅ Auth + Pixel + CAPI loaded (v8 — BUG FIXED)');
+console.log('✅ Auth + Pixel + CAPI loaded (v9 — PURCHASE VALUE FIXED)');

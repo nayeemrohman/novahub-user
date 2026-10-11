@@ -1,5 +1,11 @@
 // ============================================================
-// NOVAHUB — Checkout Script (v7 — BUG FIXED)
+// NOVAHUB — Checkout Script (v8 — PURCHASE VALUE FIXED)
+// ============================================================
+// Fixes in v8:
+//   ✅ Purchase only fires AFTER order insert succeeds
+//   ✅ Double-click guard via button disabled state
+//   ✅ Server response `data` used as source of truth
+//   ✅ Order currency from DB response, not hardcoded
 // ============================================================
 
 let checkoutMode = 'cart';
@@ -648,7 +654,7 @@ async function validateStockBeforeOrder() {
 }
 
 // ============================================================
-// PLACE ORDER
+// PLACE ORDER (v8 — FIXED)
 // ============================================================
 async function placeOrder(event) {
     if (event) event.preventDefault();
@@ -723,7 +729,7 @@ async function placeOrder(event) {
             subtotal: subtotal,
             delivery_charge: deliveryCharge,
             total: total,
-            currency: window.settings.currency,
+            currency: window.settings.currency || 'BDT',
             status: 'pending'
         };
         
@@ -731,29 +737,44 @@ async function placeOrder(event) {
             .from('orders').insert([orderData]).select().single();
         
         if (error) throw error;
+        if (!data) throw new Error('Order insert returned no data');
         
-        console.log('✅ Order placed:', data);
+        console.log('✅ Order placed:', data.order_id, 'Total:', data.total, data.currency);
         
-        sendWebhookNotification(orderData).catch(err => console.error('Webhook failed:', err));
+        // Webhook (fire-and-forget)
+        sendWebhookNotification(data).catch(err => console.error('Webhook failed:', err));
         
+        // ---------- Purchase tracking — ONLY after successful insert ----------
+        // Use `data` (server response) as source of truth
         if (typeof window.trackPurchase === 'function') {
-            window.trackPurchase(orderId, checkoutItems, total, {
-                email: orderData.email,
-                phone: orderData.phone,
-                full_name: orderData.full_name,
-                district: orderData.district,
-                division: orderData.division,
-                user_id: orderData.user_id
-            });
+            window.trackPurchase(
+                data.order_id,
+                Array.isArray(data.items) ? data.items.map(i => ({
+                    productId: i.productId,
+                    quantity: i.quantity,
+                    price: i.price
+                })) : [],
+                parseFloat(data.total),
+                {
+                    email: data.email,
+                    phone: data.phone,
+                    full_name: data.full_name,
+                    district: data.district,
+                    division: data.division,
+                    user_id: data.user_id,
+                    currency: data.currency || 'BDT'
+                }
+            );
         }
         
+        // Clear cart
         if (checkoutMode === 'cart') {
             CartModule.clearSelected();
         } else {
             localStorage.removeItem('novahub_direct_checkout');
         }
         
-        document.getElementById('thankYouOrderId').textContent = orderId;
+        document.getElementById('thankYouOrderId').textContent = data.order_id;
         document.getElementById('thankYouModal').classList.add('active');
         document.body.style.overflow = 'hidden';
         
@@ -982,4 +1003,4 @@ function continueShopping() {
 }
 window.continueShopping = continueShopping;
 
-console.log('✅ Checkout script loaded (v7 — BUG FIXED)');
+console.log('✅ Checkout script loaded (v8 — PURCHASE VALUE FIXED)');
