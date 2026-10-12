@@ -1,5 +1,5 @@
 // ============================================================
-// NOVAHUB — Homepage Script (v8 — SLUG URL FIXED)
+// NOVAHUB — Homepage Script (v9 — BD-STYLE INTERNAL LINKING)
 // Domain: novahubgadgets.com
 // ============================================================
 
@@ -603,7 +603,7 @@ function buildProductUrl(product) {
 window.buildProductUrl = buildProductUrl;
 
 // ============================================================
-// PRODUCT CARD
+// PRODUCT CARD — With BD-Style Internal Linking
 // ============================================================
 function renderProductCard(product) {
     const price = safeParseNumber(product.price);
@@ -611,20 +611,27 @@ function renderProductCard(product) {
     const hasDiscount = oldPrice > price;
     const discountPercent = hasDiscount ? Math.round(((oldPrice - price) / oldPrice) * 100) : 0;
     const isOutOfStock = product.stock_status === 'out_of_stock';
-    const productUrl = buildProductUrl(product);
+    
+    // BD-style title for internal link
+    const seoTitle = product.title + ' Price in Bangladesh | Novahub';
+    const seoAltText = product.title + ' Price in Bangladesh - Buy Online at Novahub';
     
     return `
         <div class="product-card">
             <div class="product-image-wrapper">
                 ${hasDiscount ? `<div class="product-badge">-${discountPercent}%</div>` : ''}
                 <img src="${escapeHtml(product.image_url || 'https://via.placeholder.com/300')}" 
-                    alt="${escapeHtml(product.title)}" class="product-image" loading="lazy"
+                    alt="${escapeHtml(seoAltText)}" 
+                    title="${escapeHtml(seoTitle)}"
+                    class="product-image" loading="lazy"
                     onclick="openProduct('${product.id}')"
                     onerror="this.src='https://via.placeholder.com/300'">
                 ${isOutOfStock ? '<div class="stock-badge out-of-stock">Out of Stock</div>' : ''}
             </div>
             <div class="product-info">
-                <h3 class="product-title" onclick="openProduct('${product.id}')">${escapeHtml(product.title)}</h3>
+                <h3 class="product-title" 
+                    title="${escapeHtml(seoTitle)}"
+                    onclick="openProduct('${product.id}')">${escapeHtml(product.title)}</h3>
                 <div class="product-price">
                     <span class="current-price">${formatPrice(price)}</span>
                     ${hasDiscount ? `<span class="old-price">${formatPrice(oldPrice)}</span>` : ''}
@@ -787,4 +794,4 @@ function clearCategoryFilter(updateURL = true) {
 }
 window.clearCategoryFilter = clearCategoryFilter;
 
-console.log('✅ Homepage script loaded (v8 — SLUG URL FIXED)');
+console.log('✅ Homepage script loaded (v9 — BD-STYLE INTERNAL LINKING)');

@@ -1,5 +1,5 @@
 // ============================================================
-// NOVAHUB — AI SEO Generation Endpoint
+// NOVAHUB — AI SEO Generation Endpoint (v2 — BD-STYLE)
 // Vercel Serverless Function
 // Endpoint: POST /api/generate-seo
 // ============================================================
@@ -8,14 +8,6 @@
 //   - Admin-only: verifies Supabase JWT + user_profiles.role = 'admin'
 //   - Rate limited: 10 requests per 10 minutes per user
 //   - Product loaded from DB (client cannot inject fake data)
-// ============================================================
-//
-// Required env vars:
-//   AI_API_KEY         — Provider API key
-//   AI_PROVIDER        — 'openai' | 'anthropic' | 'gemini'  (default: openai)
-//   AI_MODEL           — Model name (e.g. gpt-4o-mini)
-//   SUPABASE_URL       — Supabase project URL
-//   SUPABASE_ANON_KEY  — Supabase anon key
 // ============================================================
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://oxnfiueqmvggtjtciqbn.supabase.co';
@@ -190,10 +182,14 @@ async function fetchProduct(productId) {
     }
 }
 
+// ============================================================
+// BUILD PROMPT — BD-STYLE (BDStall-inspired)
+// ============================================================
 function buildPrompt(product, additionalInfo) {
     const price = parseFloat(product.price) || 0;
     const oldPrice = parseFloat(product.old_price) || 0;
     const hasDiscount = oldPrice > price;
+    const stockStatus = product.stock_status === 'out_of_stock' ? 'Out of stock' : 'In stock';
     
     const productData = {
         title: String(product.title || '').trim(),
@@ -202,7 +198,8 @@ function buildPrompt(product, additionalInfo) {
         old_price: oldPrice,
         has_discount: hasDiscount,
         currency: 'BDT',
-        stock_status: product.stock_status || 'in_stock'
+        price_display: '৳' + price,
+        stock_status: stockStatus
     };
     
     if (additionalInfo) {
@@ -219,40 +216,83 @@ function buildPrompt(product, additionalInfo) {
     }
     
     const systemPrompt = [
-        'You are an SEO specialist for a Bangladesh gadget e-commerce store called Novahub.',
-        'You generate product-specific SEO metadata for individual products.',
+        'You are an SEO specialist for a Bangladesh gadget e-commerce store called Novahub (novahubgadgets.com).',
+        'You generate product-specific SEO metadata in the STYLE of top Bangladesh e-commerce sites like BDStall, Pickaboo, Gadget & Gear.',
         '',
-        'STRICT RULES — never violate these:',
+        '=== STRICT RULES ===',
         '1. Use ONLY the information provided in the product data below.',
-        '2. NEVER invent specifications, features, warranty, compatibility, certifications, materials, dimensions, battery life, weight, or technical claims.',
+        '2. NEVER invent specifications, features, warranty, compatibility, materials, dimensions, battery life, weight, or technical claims.',
         '3. NEVER invent prices, discounts, ratings, review counts, or availability.',
         '4. NEVER invent brand names or manufacturer claims.',
-        '5. If a field cannot be derived from the provided data, return null for it.',
-        '6. Never use promotional claims like "best in the world", "guaranteed", "#1", "100% safe", "cheapest".',
-        '7. Output valid JSON only. No prose, no markdown, no code fences.',
+        '5. NEVER use promotional claims: "best in the world", "guaranteed", "#1", "100% safe", "cheapest", "miracle".',
+        '6. Output valid JSON only. No prose, no markdown, no code fences.',
         '',
-        'Return a JSON object with exactly these keys:',
+        '=== BANGLADESH SEO PATTERNS (BDStall-style) ===',
+        '',
+        'TITLE FORMAT (must be 50-60 characters, in this exact style):',
+        '   Primary:  "[Product Name] Price in Bangladesh"',
+        '   Alt:      "[Product Name] Price in BD | Novahub"',
+        '   If title is long:  "[Product Name] Price in BD"',
+        '   ✅ Example: "K8 Sport Wireless Earbuds Price in Bangladesh"',
+        '   ❌ Avoid: "Buy K8 Sport Wireless Earbuds Online at Best Price"',
+        '',
+        'DESCRIPTION FORMAT (140-160 characters, BDStall style):',
+        '   Pattern: "[Product Name] — The lowest price of [short name] in Bangladesh is ৳[price] only. Buy [short name] at the best price from Novahub. [Stock status]."',
+        '   ✅ Example: "K8 Sport Wireless Earbuds — The lowest price in Bangladesh is ৳460 only. Buy K8 at the best price from Novahub. In stock."',
+        '   Must include: ৳ price, "Bangladesh", "best price", "Novahub", stock status',
+        '',
+        'KEYWORDS (8-12 comma-separated, lowercase):',
+        '   MANDATORY keywords (adapt [product] to the actual product):',
+        '   - "[product] price in bangladesh"',
+        '   - "[product] price in bd"',
+        '   - "[product] bangladesh"',
+        '   - "buy [product] online"',
+        '   - "[product] best price"',
+        '   - "[product] novahub"',
+        '   Then add 2-6 category-specific keywords.',
+        '',
+        'SLUG FORMAT (kebab-case, 4-7 words):',
+        '   Pattern: "[product-name]-price-in-bangladesh"',
+        '   ✅ Example: "k8-sport-wireless-earbuds-price-in-bangladesh"',
+        '   Only: lowercase letters, numbers, hyphens.',
+        '',
+        'OG_TITLE (50-60 chars, BDStall-style with price):',
+        '   Pattern: "[Product Name] Price in Bangladesh ৳[price] | Novahub"',
+        '   ✅ Example: "K8 Wireless Earbuds Price in Bangladesh ৳460 | Novahub"',
+        '',
+        'OG_DESCRIPTION (140-200 chars, engaging):',
+        '   Mention: price, Cash on Delivery, fast shipping in Bangladesh',
+        '',
+        'FOCUS_KEYWORD (single primary keyword phrase):',
+        '   Pattern: "[product] price in bangladesh"',
+        '   ✅ Example: "k8 wireless earbuds price in bangladesh"',
+        '',
+        'SEO_SUMMARY (2-3 short sentences):',
+        '   Summarize the product for AI/search context. Mention price, category, use case.',
+        '',
+        '=== OUTPUT JSON SCHEMA ===',
         '{',
-        '  "seo_title":       "50-60 chars, includes product name and price. Bangladesh-focused.",',
-        '  "seo_description": "140-160 chars, concise, describes product accurately.",',
-        '  "seo_keywords":    "8-12 comma-separated keywords, lowercase, Bangladesh-relevant.",',
-        '  "seo_slug":        "kebab-case, 3-6 words, lowercase, no special characters.",',
-        '  "og_title":        "50-60 chars, more engaging than seo_title.",',
-        '  "og_description":  "140-200 chars, social-share friendly.",',
-        '  "focus_keyword":   "single primary keyword phrase.",',
-        '  "seo_summary":     "2-3 short sentences summarizing the product for SEO context."',
+        '  "seo_title":       "50-60 chars, BDStall-style with price in Bangladesh",',
+        '  "seo_description": "140-160 chars, BDStall-style with ৳ price",',
+        '  "seo_keywords":    "8-12 comma-separated keywords",',
+        '  "seo_slug":        "kebab-case, ends with -price-in-bangladesh",',
+        '  "og_title":        "50-60 chars with ৳ price",',
+        '  "og_description":  "140-200 chars, engaging, mentions COD",',
+        '  "focus_keyword":   "[product] price in bangladesh",',
+        '  "seo_summary":     "2-3 sentences"',
         '}',
         '',
-        'If any field truly cannot be determined from the product data, set it to null.',
+        'If any field cannot be determined from product data, set it to null. Return JSON only.'
     ].join('\n');
     
     const userPrompt = [
-        'Generate SEO for the following product. Base every field ONLY on the data provided.',
+        'Generate SEO for the following Bangladesh e-commerce product.',
+        'Follow BDStall-style patterns EXACTLY. Base every field ONLY on the data provided.',
         '',
         'Product data (JSON):',
         JSON.stringify(productData, null, 2),
         '',
-        'Remember: no fabrication. Return JSON only.'
+        'Return JSON only. No explanations.'
     ].join('\n');
     
     return { systemPrompt, userPrompt };

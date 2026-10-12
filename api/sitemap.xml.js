@@ -1,5 +1,5 @@
 // ============================================================
-// NOVAHUB — Dynamic Sitemap Generator
+// NOVAHUB — Dynamic Sitemap Generator (v2 — BD-OPTIMIZED)
 // Vercel Serverless Function
 // Endpoint: GET /api/sitemap.xml
 // ============================================================
@@ -30,7 +30,7 @@ module.exports = async (req, res) => {
 
 async function fetchActiveProducts() {
     try {
-        const url = SUPABASE_URL + '/rest/v1/products?is_active=eq.true&select=id,seo_slug,updated_at,created_at';
+        const url = SUPABASE_URL + '/rest/v1/products?is_active=eq.true&select=id,seo_slug,updated_at,created_at,price,title';
         const response = await fetch(url, {
             headers: {
                 'apikey': SUPABASE_ANON_KEY,
@@ -65,6 +65,7 @@ function buildSitemapXML(products) {
         urls.push(buildUrlEntry(page));
     });
     
+    // Product pages — HIGHER PRIORITY (0.9) for BD SEO
     products.forEach(product => {
         if (!product || !product.id) return;
         
@@ -81,7 +82,7 @@ function buildSitemapXML(products) {
             loc: loc,
             lastmod: lastmod,
             changefreq: 'weekly',
-            priority: '0.8'
+            priority: '0.9'
         }));
     });
     

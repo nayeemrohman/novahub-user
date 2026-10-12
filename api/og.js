@@ -1,5 +1,5 @@
 // ============================================================
-// NOVAHUB — Dynamic OG Meta Tag Generator (v4 — FINAL)
+// NOVAHUB — Dynamic OG Meta Tag Generator (v5 — BD-STYLE)
 // Vercel Serverless Function
 // ============================================================
 
@@ -12,9 +12,6 @@ const DEFAULT_IMAGE = SITE_URL + '/assets/images/logo.jpg';
 const DEFAULT_TITLE = 'Novahub – Best Gadget Accessories Shop in Bangladesh';
 const DEFAULT_DESCRIPTION = 'Shop premium gadget accessories at Novahub – Headphones, Gaming Gear, Power Banks & more at best prices.';
 
-// ============================================================
-// ESCAPE HELPERS
-// ============================================================
 function escapeHtml(str) {
     if (!str) return '';
     return String(str)
@@ -53,9 +50,6 @@ function isUUID(str) {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 }
 
-// ============================================================
-// FETCH PRODUCT
-// ============================================================
 async function fetchProduct(idOrSlug) {
     if (!idOrSlug) return null;
     try {
@@ -88,7 +82,7 @@ async function fetchProduct(idOrSlug) {
 }
 
 // ============================================================
-// BUILD HTML
+// BUILD HTML — BD-STYLE OG
 // ============================================================
 function buildHTML(product) {
     let title = DEFAULT_TITLE;
@@ -113,23 +107,40 @@ function buildHTML(product) {
             : SITE_URL + '/product.html?id=' + product.id;
 
         const productPrice = parseFloat(product.price) || 0;
+        const priceDisplay = formatPrice(productPrice);
+        const stockStatus = product.stock_status === 'out_of_stock' ? 'Out of stock' : 'In stock';
 
-        const autoTitle = product.title + ' – ' + formatPrice(productPrice) + ' | ' + SITE_NAME;
-        title = (product.seo_title && String(product.seo_title).trim()) || autoTitle;
-
-        if (product.seo_description && String(product.seo_description).trim()) {
-            description = truncate(product.seo_description, 160);
-        } else if (product.description && String(product.description).trim()) {
-            description = truncate(product.description, 160);
-        } else {
-            description = 'Buy ' + product.title + ' at ' + formatPrice(productPrice) + ' in Bangladesh. Cash on Delivery, Fast Shipping. Order now from Novahub.';
+        // ============================================================
+        // BD-STYLE TITLE: "[Product Name] Price in Bangladesh ৳[price] | Novahub"
+        // ============================================================
+        const autoTitle = product.title + ' Price in Bangladesh ' + priceDisplay + ' | Novahub';
+        let bdTitle = autoTitle;
+        if (bdTitle.length > 70) {
+            bdTitle = product.title + ' Price in Bangladesh | Novahub';
         }
-
-        if (product.og_title && String(product.og_title).trim()) {
-            title = String(product.og_title).trim();
+        if (bdTitle.length > 70) {
+            bdTitle = product.title + ' Price in BD | Novahub';
         }
+        
+        title = (product.og_title && String(product.og_title).trim()) || bdTitle;
+
+        // ============================================================
+        // BD-STYLE DESCRIPTION
+        // ============================================================
+        const shortTitle = product.title.length > 40 
+            ? product.title.substring(0, 40).trim() + '...' 
+            : product.title;
+        
+        const autoDesc = shortTitle + ' — The lowest price in Bangladesh is ' 
+            + priceDisplay + ' only. Buy at the best price from Novahub. ' 
+            + stockStatus + '.';
+        
         if (product.og_description && String(product.og_description).trim()) {
             description = truncate(product.og_description, 200);
+        } else if (product.seo_description && String(product.seo_description).trim()) {
+            description = truncate(product.seo_description, 160);
+        } else {
+            description = truncate(autoDesc, 160);
         }
 
         if (product.og_image && String(product.og_image).trim()) {
@@ -201,9 +212,6 @@ function buildHTML(product) {
 '</html>';
 }
 
-// ============================================================
-// HANDLER
-// ============================================================
 module.exports = async (req, res) => {
     try {
         const url = new URL(req.url, 'https://' + (req.headers.host || 'novahubgadgets.com'));

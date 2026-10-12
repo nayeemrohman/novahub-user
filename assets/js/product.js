@@ -1,5 +1,5 @@
 // ============================================================
-// NOVAHUB — Product Page Script (v9 — FINAL)
+// NOVAHUB — Product Page Script (v10 — BD-STYLE SEO)
 // ============================================================
 
 let product = null;
@@ -152,7 +152,7 @@ async function loadProduct(productIdOrSlug) {
 }
 
 // ============================================================
-// SEO UPDATE
+// SEO UPDATE — BD-STYLE (v10)
 // ============================================================
 function updateSEO() {
     const price = safeParseNumber(product.price);
@@ -171,23 +171,72 @@ function updateSEO() {
         || productImages[0] 
         || 'https://novahubgadgets.com/assets/images/logo.jpg';
     
-    const defaultTitle = product.title + ' – ৳' + price + ' | Novahub Bangladesh';
-    const pageTitle = (product.seo_title && String(product.seo_title).trim()) || defaultTitle;
+    // ============================================================
+    // BD-STYLE TITLE: "[Product Name] Price in Bangladesh ৳[price] | Novahub"
+    // ============================================================
+    const priceDisplay = '৳' + price;
+    const defaultTitle = product.title + ' Price in Bangladesh ' + priceDisplay + ' | Novahub';
     
-    const defaultDesc = product.description 
-        ? product.description.replace(/\s+/g, ' ').trim().substring(0, 155)
-        : 'Buy ' + product.title + ' at ৳' + price + ' in Bangladesh. Cash on Delivery available. Order now from Novahub.';
-    const shortDesc = (product.seo_description && String(product.seo_description).trim()) || defaultDesc;
+    // If title too long, trim
+    let baseTitle = defaultTitle;
+    if (baseTitle.length > 65) {
+        baseTitle = product.title + ' Price in Bangladesh | Novahub';
+    }
+    if (baseTitle.length > 65) {
+        baseTitle = product.title + ' Price in BD | Novahub';
+    }
     
-    const keywords = (product.seo_keywords && String(product.seo_keywords).trim()) || null;
+    const pageTitle = (product.seo_title && String(product.seo_title).trim()) || baseTitle;
     
-    const ogTitleValue = (product.og_title && String(product.og_title).trim()) || pageTitle;
-    const ogDescValue = (product.og_description && String(product.og_description).trim()) || shortDesc;
+    // ============================================================
+    // BD-STYLE DESCRIPTION
+    // ============================================================
+    const shortTitle = product.title.length > 40 
+        ? product.title.substring(0, 40).trim() + '...' 
+        : product.title;
     
+    const defaultDesc = shortTitle + ' — The lowest price in Bangladesh is ' 
+        + priceDisplay + ' only. Buy at the best price from Novahub. '
+        + (inStock ? 'In stock, Cash on Delivery available.' : 'Currently out of stock.');
+    
+    let desc = (product.seo_description && String(product.seo_description).trim()) || defaultDesc;
+    if (desc.length > 160) desc = desc.substring(0, 157).trim() + '...';
+    
+    // ============================================================
+    // BD-STYLE KEYWORDS
+    // ============================================================
+    const titleLower = product.title.toLowerCase();
+    const autoKeywords = [
+        titleLower + ' price in bangladesh',
+        titleLower + ' price in bd',
+        titleLower + ' bangladesh',
+        'buy ' + titleLower + ' online',
+        titleLower + ' best price',
+        titleLower + ' novahub',
+        'gadget price in bangladesh',
+        'online gadget shop bd'
+    ].join(', ');
+    
+    const keywords = (product.seo_keywords && String(product.seo_keywords).trim()) || autoKeywords;
+    
+    // ============================================================
+    // OG TITLE / DESCRIPTION
+    // ============================================================
+    const defaultOgTitle = product.title + ' Price in Bangladesh ' + priceDisplay + ' | Novahub';
+    const ogTitleValue = (product.og_title && String(product.og_title).trim()) || 
+        (defaultOgTitle.length > 70 ? product.title + ' Price in Bangladesh | Novahub' : defaultOgTitle);
+    
+    const defaultOgDesc = product.title + ' is now available at Novahub for only ' 
+        + priceDisplay + '. Cash on Delivery available across Bangladesh. Order now!';
+    const ogDescValue = (product.og_description && String(product.og_description).trim()) || defaultOgDesc;
+    
+    // ============================================================
+    // APPLY TO DOM
+    // ============================================================
     document.title = pageTitle;
     
     setMeta('name', 'title', pageTitle);
-    setMeta('name', 'description', shortDesc);
+    setMeta('name', 'description', desc);
     if (keywords) setMeta('name', 'keywords', keywords);
     
     const canonical = document.getElementById('canonicalLink');
@@ -208,7 +257,7 @@ function updateSEO() {
     setMetaById('twitter:title', ogTitleValue);
     setMetaById('twitter:description', ogDescValue);
     setMetaById('twitter:image', productImage);
-    setMetaById('twitter:data1', '৳' + price);
+    setMetaById('twitter:data1', priceDisplay);
     setMetaById('twitter:data2', inStock ? 'In Stock' : 'Out of Stock');
     
     const twitterImageAlt = document.getElementById('twitterImageAlt');
@@ -218,12 +267,19 @@ function updateSEO() {
     setMetaById('whatsapp:description', ogDescValue);
     setMetaById('whatsapp:image', productImage);
     
+    // ============================================================
+    // PRODUCT SCHEMA — Dynamic priceValidUntil (1 year from now)
+    // ============================================================
+    const priceValidUntil = new Date();
+    priceValidUntil.setFullYear(priceValidUntil.getFullYear() + 1);
+    const priceValidUntilStr = priceValidUntil.toISOString().split('T')[0];
+    
     const schema = {
         "@context": "https://schema.org",
         "@type": "Product",
-        "name": product.title,
+        "name": product.title + ' Price in Bangladesh',
         "image": productImages,
-        "description": product.description || product.title,
+        "description": product.description || (product.title + ' available at Novahub Bangladesh for ' + priceDisplay),
         "sku": product.id,
         "mpn": product.id,
         "brand": { "@type": "Brand", "name": "Novahub" },
@@ -232,7 +288,7 @@ function updateSEO() {
             "url": productUrl,
             "priceCurrency": "BDT",
             "price": price,
-            "priceValidUntil": "2027-12-31",
+            "priceValidUntil": priceValidUntilStr,
             "availability": inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
             "itemCondition": "https://schema.org/NewCondition",
             "seller": {
@@ -242,6 +298,15 @@ function updateSEO() {
             }
         }
     };
+    
+    if (oldPrice > price) {
+        schema.offers.priceSpecification = {
+            "@type": "UnitPriceSpecification",
+            "price": price,
+            "priceCurrency": "BDT",
+            "priceValidUntil": priceValidUntilStr
+        };
+    }
     
     if (allReviews.length > 0) {
         const avgRating = allReviews.reduce((s, r) => s + r.rating, 0) / allReviews.length;
@@ -275,7 +340,7 @@ function updateSEO() {
         "@type": "BreadcrumbList",
         "itemListElement": [
             { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://novahubgadgets.com/" },
-            { "@type": "ListItem", "position": 2, "name": product.title, "item": productUrl }
+            { "@type": "ListItem", "position": 2, "name": product.title + ' Price in Bangladesh', "item": productUrl }
         ]
     };
     
@@ -390,14 +455,14 @@ function renderProduct() {
         '<div class="product-details">' +
             '<div class="product-images-section">' +
                 '<div class="main-image-container" id="mainImageWrap">' +
-                    '<img src="' + escapeHtml(mainImage) + '" alt="' + escapeHtml(product.title) + '" ' +
+                    '<img src="' + escapeHtml(mainImage) + '" alt="' + escapeHtml(product.title) + ' Price in Bangladesh" ' +
                     'class="main-product-image" id="mainProductImage" ' +
                     'onerror="this.src=\'https://via.placeholder.com/600\'">' +
                 '</div>' +
                 (thumbnailsHTML ? '<div class="thumbnail-container" id="thumbnailContainer">' + thumbnailsHTML + '</div>' : '') +
             '</div>' +
             '<div class="product-details-info">' +
-                '<h1 class="product-details-title">' + escapeHtml(product.title) + '</h1>' +
+                '<h1 class="product-details-title">' + escapeHtml(product.title) + ' Price in Bangladesh</h1>' +
                 '<div class="product-details-price">' +
                     '<div class="price-stock-row">' +
                         '<div class="price-section">' +
@@ -771,18 +836,19 @@ async function loadRelatedProducts() {
             const discountPercent = hasDiscount ? Math.round(((oldPrice - price) / oldPrice) * 100) : 0;
             const isOutOfStock = p.stock_status === 'out_of_stock';
             const linkId = (p.seo_slug && String(p.seo_slug).trim()) ? p.seo_slug : p.id;
+            const relatedTitle = p.title + ' Price in Bangladesh';
             
             return '<div class="product-card">' +
                 '<div class="product-image-wrapper">' +
                     (hasDiscount ? '<div class="product-badge">-' + discountPercent + '%</div>' : '') +
                     '<img src="' + escapeHtml(p.image_url || 'https://via.placeholder.com/300') + '" ' +
-                        'alt="' + escapeHtml(p.title) + '" class="product-image" loading="lazy" ' +
+                        'alt="' + escapeHtml(relatedTitle) + '" class="product-image" loading="lazy" ' +
                         'onclick="window.location.href=\'product.html?id=' + encodeURIComponent(linkId) + '\'" ' +
                         'onerror="this.src=\'https://via.placeholder.com/300\'">' +
                     (isOutOfStock ? '<div class="stock-badge out-of-stock">Out of Stock</div>' : '') +
                 '</div>' +
                 '<div class="product-info">' +
-                    '<h3 class="product-title" onclick="window.location.href=\'product.html?id=' + encodeURIComponent(linkId) + '\'">' + escapeHtml(p.title) + '</h3>' +
+                    '<h3 class="product-title" title="' + escapeHtml(relatedTitle) + '" onclick="window.location.href=\'product.html?id=' + encodeURIComponent(linkId) + '\'">' + escapeHtml(p.title) + '</h3>' +
                     '<div class="product-price">' +
                         '<span class="current-price">' + formatPrice(price) + '</span>' +
                         (hasDiscount ? '<span class="old-price">' + formatPrice(oldPrice) + '</span>' : '') +
@@ -1046,4 +1112,4 @@ async function submitReview() {
 }
 window.submitReview = submitReview;
 
-console.log('✅ Product page loaded (v9 — FINAL)');
+console.log('✅ Product page loaded (v10 — BD-STYLE SEO)');
