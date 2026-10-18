@@ -1,0 +1,277 @@
+# ============================================================
+# NOVAHUB — robots.txt (v2 — BUG FIXED)
+# Domain: https://novahubgadgets.com
+# ============================================================
+# 
+# FIXES in v2:
+#   ✅ Removed ?category= disallow (category pages should be indexed)
+#   ✅ Removed trailing slash issues
+#   ✅ Cleaner organization
+#   ✅ Added AI crawler rules
+#   ✅ Added bad bot blocking
+#   ✅ Sitemap at bottom (best practice)
+# ============================================================
+
+# ==================== GLOBAL DEFAULT ====================
+User-agent: *
+Allow: /
+
+# Public pages
+Allow: /$
+Allow: /index.html
+Allow: /about.html
+Allow: /terms.html
+Allow: /privacy.html
+Allow: /order-track.html
+Allow: /order-track/
+Allow: /product.html
+Allow: /product/
+Allow: /og
+
+# Assets
+Allow: /assets/
+Allow: /assets/images/
+Allow: /assets/css/
+Allow: /assets/js/
+
+# Private pages (don't index)
+Disallow: /checkout.html
+Disallow: /checkout
+Disallow: /auth.html
+Disallow: /auth
+Disallow: /profile.html
+Disallow: /profile
+Disallow: /profile-complete.html
+Disallow: /profile-complete
+Disallow: /admin/
+Disallow: /api/
+
+# Error pages (don't index)
+Disallow: /404.html
+Disallow: /500.html
+
+# Query param filters (avoid duplicate content)
+Disallow: /*?utm_
+Disallow: /*?ref=
+Disallow: /*?fbclid=
+Disallow: /*?gclid=
+Disallow: /*?search=
+Disallow: /*?q=
+
+# ✅ FIXED: Allow category browsing (removed ?category= disallow)
+# Google can now index filtered category views
+
+
+# ==================== GOOGLE ====================
+User-agent: Googlebot
+Allow: /
+Allow: /product/
+Allow: /og
+Allow: /assets/
+Disallow: /admin/
+Disallow: /api/
+Disallow: /checkout.html
+Disallow: /auth.html
+Disallow: /profile.html
+Disallow: /profile-complete.html
+
+# Google Images — allow all images
+User-agent: Googlebot-Image
+Allow: /
+Allow: /assets/images/
+Allow: /product/
+
+# Google Extended (AI training opt-in for content)
+User-agent: Google-Extended
+Allow: /
+Allow: /product/
+Allow: /about.html
+Disallow: /admin/
+Disallow: /checkout.html
+
+
+# ==================== BING ====================
+User-agent: Bingbot
+Allow: /
+Allow: /product/
+Allow: /og
+Disallow: /admin/
+Disallow: /api/
+Disallow: /checkout.html
+Disallow: /auth.html
+
+
+# ==================== YAHOO / DUCKDUCKGO ====================
+User-agent: Slurp
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+User-agent: DuckDuckBot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+
+# ==================== SOCIAL MEDIA ====================
+User-agent: FacebookExternalHit
+Allow: /
+Allow: /product/
+Allow: /og
+Allow: /assets/images/
+
+User-agent: Twitterbot
+Allow: /
+Allow: /product/
+Allow: /og
+
+User-agent: WhatsApp
+Allow: /
+Allow: /product/
+Allow: /og
+
+User-agent: TelegramBot
+Allow: /
+Allow: /product/
+Allow: /og
+
+User-agent: LinkedInBot
+Allow: /
+Allow: /product/
+Allow: /og
+
+User-agent: Pinterestbot
+Allow: /
+Allow: /product/
+Allow: /og
+
+User-agent: Discordbot
+Allow: /
+Allow: /product/
+Allow: /og
+
+
+# ==================== AI CRAWLERS ====================
+User-agent: GPTBot
+Allow: /
+Allow: /product/
+Allow: /about.html
+Disallow: /admin/
+Disallow: /api/
+Disallow: /checkout.html
+
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+User-agent: ClaudeBot
+Allow: /
+Allow: /product/
+Disallow: /admin/
+Disallow: /api/
+
+User-agent: Claude-Web
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+User-agent: PerplexityBot
+Allow: /
+Allow: /product/
+Disallow: /admin/
+Disallow: /api/
+
+User-agent: GoogleOther
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+User-agent: Applebot-Extended
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+
+# ==================== SEO TOOLS (BLOCK) ====================
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+User-agent: PetalBot
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+User-agent: DataForSeoBot
+Disallow: /
+
+User-agent: BLEXBot
+Disallow: /
+
+
+# ==================== SCRAPERS (BLOCK) ====================
+User-agent: HTTrack
+Disallow: /
+
+User-agent: WebCopier
+Disallow: /
+
+User-agent: WebZIP
+Disallow: /
+
+User-agent: Teleport
+Disallow: /
+
+User-agent: Wget
+Disallow: /
+
+User-agent: WebStripper
+Disallow: /
+
+User-agent: SiteSnagger
+Disallow: /
+
+User-agent: Copier
+Disallow: /
+
+User-agent: EmailCollector
+Disallow: /
+
+User-agent: EmailSiphon
+Disallow: /
+
+User-agent: WebBandit
+Disallow: /
+
+User-agent: EmailWolf
+Disallow: /
+
+User-agent: ExtractorPro
+Disallow: /
+
+User-agent: CherryPicker
+Disallow: /
+
+User-agent: WebAuto
+Disallow: /
+
+User-agent: WebCapture
+Disallow: /
+
+User-agent: Zeus
+Disallow: /
+
+
+# ==================== SITEMAP ====================
+# Dynamic sitemap served via api/sitemap.xml.js
+Sitemap: https://novahubgadgets.com/sitemap.xml
