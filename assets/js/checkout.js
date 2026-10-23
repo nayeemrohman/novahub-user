@@ -62,6 +62,77 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ============================================================
+// BUILD CHECKOUT ITEMS — FIX for missing function
+// ============================================================
+async function buildCheckoutItems() {
+    checkoutItems = [];
+
+    // Buy Now flow: item is saved separately by product.js.
+    if (checkoutMode === 'direct') {
+        try {
+            const raw = localStorage.getItem('novahub_direct_checkout');
+            const direct = raw ? JSON.parse(raw) : null;
+            if (direct && direct.productId && direct.title) {
+                checkoutItems = [{
+                    productId: String(direct.productId),
+                    title: String(direct.title),
+                    price: Math.max(0, Number(direct.price) || 0),
+                    imageURL: direct.imageURL || '',
+                    quantity: Math.max(1, Math.floor(Number(direct.quantity) || 1)),
+                    selectedVariant: direct.selectedVariant || null
+                }];
+            }
+        } catch (error) {
+            console.error('Could not read direct checkout item:', error);
+            checkoutItems = [];
+        }
+        return;
+    }
+
+    // Cart flow: only include items selected by the customer.
+    try {
+        if (window.CartModule) {
+            const selectedItems = window.CartModule.getSelectedItems();
+            checkoutItems = (Array.isArray(selectedItems) ? selectedItems : [])
+                .filter(item => item && item.productId && item.title)
+                .map(item => ({
+                    productId: String(item.productId),
+                    title: String(item.title),
+                    price: Math.max(0, Number(item.price) || 0),
+                    imageURL: item.imageURL || item.image_url || '',
+                    quantity: Math.max(1, Math.floor(Number(item.quantity) || 1)),
+                    selectedVariant: item.selectedVariant || null
+                }));
+        } else {
+            // Defensive fallback for cases where CartModule failed to initialize.
+            const raw = localStorage.getItem('novahub_cart');
+            const cart = raw ? JSON.parse(raw) : [];
+            const selectedRaw = localStorage.getItem('novahub_selected_cart');
+            const selected = selectedRaw ? JSON.parse(selectedRaw) : [];
+            checkoutItems = (Array.isArray(cart) ? cart : [])
+                .filter(item => {
+                    if (!item || !item.productId) return false;
+                    const key = typeof window.generateItemKey === 'function'
+                        ? window.generateItemKey(item.productId, item.selectedVariant)
+                        : String(item.productId) + '::' + JSON.stringify(item.selectedVariant || null);
+                    return Array.isArray(selected) && selected.includes(key);
+                })
+                .map(item => ({
+                    productId: String(item.productId),
+                    title: String(item.title || 'Product'),
+                    price: Math.max(0, Number(item.price) || 0),
+                    imageURL: item.imageURL || item.image_url || '',
+                    quantity: Math.max(1, Math.floor(Number(item.quantity) || 1)),
+                    selectedVariant: item.selectedVariant || null
+                }));
+        }
+    } catch (error) {
+        console.error('Could not build checkout items:', error);
+        checkoutItems = [];
+    }
+}
+
+// ============================================================
 // LOAD SETTINGS
 // ============================================================
 async function loadSettings() {
