@@ -11,8 +11,8 @@ const SITE_URL = 'https://novahubgadgets.com';
 
 module.exports = async (req, res) => {
     try {
-        const products = await fetchActiveProducts();
-        const xml = buildSitemapXML(products);
+        const [products, landingPages] = await Promise.all([fetchActiveProducts(), fetchPublishedLandingPages()]);
+        const xml = buildSitemapXML(products, landingPages);
         
         res.setHeader('Content-Type', 'application/xml; charset=utf-8');
         res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=3600, stale-while-revalidate=86400');
@@ -46,7 +46,20 @@ async function fetchActiveProducts() {
     }
 }
 
-function buildSitemapXML(products) {
+async function fetchPublishedLandingPages() {
+    try {
+        const url = SUPABASE_URL + '/rest/v1/landing_pages?is_published=eq.true&select=slug,updated_at,created_at';
+        const response = await fetch(url, { headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY, Accept: 'application/json' } });
+        if (!response.ok) return [];
+        const data = await response.json();
+        return Array.isArray(data) ? data : [];
+    } catch (error) {
+        console.error('fetchPublishedLandingPages error:', error.message);
+        return [];
+    }
+}
+
+function buildSitemapXML(products, landingPages = []) {
     const today = new Date().toISOString().split('T')[0];
     
     const staticPages = [
@@ -64,6 +77,17 @@ function buildSitemapXML(products) {
         urls.push(buildUrlEntry(page));
     });
     
+    // Published landing pages
+    landingPages.forEach(page => {
+        if (!page || !page.slug) return;
+        urls.push(buildUrlEntry({
+            loc: SITE_URL + '/lp/' + encodeURIComponent(String(page.slug)),
+            lastmod: (page.updated_at || page.created_at || today).split('T')[0],
+            changefreq: 'weekly',
+            priority: '0.8'
+        }));
+    });
+
     // Product pages — HIGHER PRIORITY (0.9) for BD SEO
     products.forEach(product => {
         if (!product || !product.id) return;

@@ -121,7 +121,7 @@ async function verifySupabaseUser(token) {
 
 async function checkAdminRole(token, userId) {
     try {
-        const url = SUPABASE_URL + '/rest/v1/user_profiles?id=eq.' + encodeURIComponent(userId) + '&select=role';
+        const url = SUPABASE_URL + '/rest/v1/admin_users?id=eq.' + encodeURIComponent(userId) + '&select=role,is_active';
         const response = await fetch(url, {
             headers: {
                 'apikey': SUPABASE_ANON_KEY,
@@ -132,7 +132,7 @@ async function checkAdminRole(token, userId) {
         if (!response.ok) return false;
         const data = await response.json();
         if (!Array.isArray(data) || data.length === 0) return false;
-        return data[0].role === 'admin';
+        return data[0].is_active === true && ['admin','owner','super_admin'].includes(String(data[0].role || '').toLowerCase());
     } catch (err) {
         console.error('checkAdminRole error:', err.message);
         return false;

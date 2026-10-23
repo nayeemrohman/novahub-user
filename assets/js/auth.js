@@ -297,8 +297,10 @@ window.trackInitiateCheckout = function(items, total) {
 window.trackPurchase = function(orderId, items, total, orderData) {
     // ---------- Deduplication guard ----------
     const guardKey = 'novahub_purchase_fired_' + orderId;
-    if (localStorage.getItem(guardKey)) {
-        console.log('[Pixel] Purchase already fired for', orderId, '— skipping duplicate');
+    const browserGuardKey = guardKey + '_browser';
+    const capiGuardKey = guardKey + '_capi';
+    if (localStorage.getItem(browserGuardKey) && localStorage.getItem(capiGuardKey)) {
+        console.log('[Pixel/CAPI] Purchase already sent for', orderId, '— skipping duplicate');
         return;
     }
 
@@ -322,7 +324,7 @@ window.trackPurchase = function(orderId, items, total, orderData) {
     const numItems = contents.reduce((s, c) => s + c.quantity, 0);
 
     // ---------- 1. Browser Pixel ----------
-    if (typeof fbq === 'function') {
+    if (!localStorage.getItem(browserGuardKey) && typeof fbq === 'function') {
         try {
             fbq('track', 'Purchase', {
                 content_ids: contents.map(c => c.id),
@@ -331,6 +333,7 @@ window.trackPurchase = function(orderId, items, total, orderData) {
                 value: normalizedTotal,
                 currency: currency
             }, { eventID: orderId });
+            localStorage.setItem(browserGuardKey, String(Date.now()));
             console.log('[Pixel] Purchase sent:', orderId, normalizedTotal, currency);
         } catch (e) {
             console.warn('[Pixel] error:', e);
@@ -340,14 +343,14 @@ window.trackPurchase = function(orderId, items, total, orderData) {
     }
 
     // ---------- 2. Server CAPI ----------
-    sendPurchaseToCAPI(orderId, contents, normalizedTotal, currency, orderData)
-        .then(() => {
-            localStorage.setItem(guardKey, String(Date.now()));
-        })
-        .catch(err => {
-            console.warn('[CAPI] send failed:', err.message);
-            localStorage.setItem(guardKey, String(Date.now()));
-        });
+    if (!localStorage.getItem(capiGuardKey)) {
+        sendPurchaseToCAPI(orderId, contents, normalizedTotal, currency, orderData)
+            .then(() => { localStorage.setItem(capiGuardKey, String(Date.now())); })
+            .catch(err => {
+                // Do not mark failed CAPI delivery as complete; a later safe retry can recover it.
+                console.warn('[CAPI] send failed; retry remains possible:', err.message);
+            });
+    }
 };
 
 // ============================================================

@@ -658,6 +658,8 @@ async function validateStockBeforeOrder() {
 // ============================================================
 async function placeOrder(event) {
     if (event) event.preventDefault();
+    // Prevent rapid repeated taps while validation / network calls are in progress.
+    if (window.__novaOrderSubmitting) return;
     
     if (checkoutItems.length === 0) {
         showToast('No items to order', 'error');
@@ -673,6 +675,7 @@ async function placeOrder(event) {
     const btnIcon = btn.querySelector('.fa-check-circle');
     const btnSpinner = btn.querySelector('.fa-spinner');
     
+    window.__novaOrderSubmitting = true;
     btn.disabled = true;
     if (btnText) btnText.textContent = 'Checking stock...';
     if (btnIcon) btnIcon.style.display = 'none';
@@ -681,6 +684,7 @@ async function placeOrder(event) {
     const outOfStock = await validateStockBeforeOrder();
     
     if (outOfStock.length > 0) {
+        window.__novaOrderSubmitting = false;
         btn.disabled = false;
         if (btnText) btnText.textContent = 'Confirm Order';
         if (btnIcon) btnIcon.style.display = 'inline';
@@ -782,6 +786,7 @@ async function placeOrder(event) {
         console.error('Place order error:', error);
         showToast('Failed to place order: ' + error.message, 'error');
     } finally {
+        window.__novaOrderSubmitting = false;
         btn.disabled = false;
         if (btnText) btnText.textContent = 'Confirm Order';
         if (btnIcon) btnIcon.style.display = 'inline';

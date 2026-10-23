@@ -706,10 +706,14 @@ function applyCategoryFilter(categoryId, updateURL) {
     }
     
     const filtered = allProducts.filter(p => {
-        if (p.category_id === categoryId) return true;
-        
-        const catIds = Array.isArray(p.category_ids) ? p.category_ids : [];
-        return catIds.includes(categoryId);
+        if (String(p.category_id || '') === String(categoryId)) return true;
+        // Legacy records may store category_ids as a JSON array or JSON string.
+        let catIds = Array.isArray(p.category_ids) ? p.category_ids : [];
+        if (typeof p.category_ids === 'string') {
+            try { const parsed = JSON.parse(p.category_ids); catIds = Array.isArray(parsed) ? parsed : []; }
+            catch (_) { catIds = p.category_ids.split(',').map(v => v.trim()).filter(Boolean); }
+        }
+        return catIds.some(id => String(id) === String(categoryId));
     });
     
     console.log(`📂 Filtered "${category.name}": ${filtered.length} products`);
