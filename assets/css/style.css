@@ -1424,3 +1424,36 @@ body.category-filter-active #searchResultsSection { display: none !important; }
 body.category-filter-active #allSection { display: block !important; }
 body.category-filter-active #allSection .section-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 body.category-filter-active .clear-filter-btn { border: 0; border-radius: 999px; padding: 8px 12px; background: #f2f2f2; color: #222; cursor: pointer; font: inherit; font-size: 13px; }
+
+
+/* ============================================================
+   NOVAHUB RESPONSIVE SAFETY OVERRIDES — 2026-10
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+body { min-width: 320px; overflow-x: hidden; }
+img, video, iframe, canvas, svg { max-width: 100%; }
+input, select, textarea, button { max-width: 100%; font: inherit; }
+button, a, input, select, textarea { touch-action: manipulation; }
+.container, .main-container, .page-container { width: min(100% - 32px, 1240px); margin-inline: auto; }
+.product-grid, .products-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); }
+.product-card, .product-item, .category-card { min-width: 0; }
+.product-card img, .product-item img { max-width: 100%; }
+.table-responsive, .responsive-table, .data-table-wrap { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+@media (max-width: 768px) {
+  .container, .main-container, .page-container { width: min(100% - 24px, 1240px); }
+  .section, .section-container { padding-inline: 0; }
+  .hero, .hero-section { grid-template-columns: 1fr; gap: 20px; }
+  .hero h1, .section-title { overflow-wrap: anywhere; }
+  .product-grid, .products-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .product-card { min-width: 0; }
+  .product-card img, .product-item img { height: auto; object-fit: contain; }
+  .footer-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .header-inner, .navbar-inner { gap: 10px; }
+}
+@media (max-width: 420px) {
+  .container, .main-container, .page-container { width: calc(100% - 20px); }
+  .product-grid, .products-grid { gap: 9px; }
+  .footer-grid { grid-template-columns: 1fr; }
+  .btn, button { min-height: 40px; }
+}
