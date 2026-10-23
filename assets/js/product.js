@@ -162,7 +162,7 @@ function updateSEO() {
     const slugForUrl = product.seo_slug && String(product.seo_slug).trim();
     const canonicalFromDb = product.canonical_url && String(product.canonical_url).trim();
     const generatedProductUrl = slugForUrl
-        ? 'https://www.novahubgadgets.com/product/' + encodeURIComponent(slugForUrl)
+        ? 'https://www.novahubgadgets.com/product.html?id=' + encodeURIComponent(slugForUrl)
         : 'https://www.novahubgadgets.com/product.html?id=' + encodeURIComponent(product.id);
     // Keep canonical URLs on the one preferred host; avoid stale DB values pointing to the apex domain.
     let productUrl = generatedProductUrl;

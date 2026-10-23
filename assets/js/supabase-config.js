@@ -94,6 +94,7 @@ async function loadSettings() {
                 whatsappNumber: data.whatsapp_number || '01947939982',
                 facebookUrl: data.facebook_url || '',
                 instagramUrl: data.instagram_url || '',
+                youtubeUrl: data.youtube_url || '',
                 insideDhakaCharge: data.inside_dhaka_charge || 60,
                 outsideDhakaCharge: data.outside_dhaka_charge || 120,
                 footerDescription: data.footer_description || '',

@@ -589,7 +589,7 @@ function renderAllProducts() {
 }
 
 // ============================================================
-// BUILD PRODUCT URL — Always use /product/slug format
+// BUILD PRODUCT URL — Use the confirmed working product.html?id=... route
 // ============================================================
 function buildProductUrl(product) {
     if (!product) return '/product';
@@ -598,7 +598,7 @@ function buildProductUrl(product) {
         ? String(product.seo_slug).trim()
         : product.id;
     
-    return '/product/' + encodeURIComponent(linkId);
+    return '/product.html?id=' + encodeURIComponent(linkId);
 }
 window.buildProductUrl = buildProductUrl;
 
@@ -676,7 +676,7 @@ function quickAddToCart(productId) {
 window.quickAddToCart = quickAddToCart;
 
 // ============================================================
-// OPEN PRODUCT — Uses /product/slug format
+// OPEN PRODUCT — Uses the working product.html?id=... format
 // ============================================================
 function openProduct(productId) {
     const product = allProducts.find(p => p.id === productId);
