@@ -695,11 +695,16 @@ async function placeOrder(event) {
             status: 'pending'
         };
         
-        const { data, error } = await supabaseClient
-            .from('orders').insert([orderData]).select().single();
-        
+        // Insert without SELECT/RETURNING. For guest checkout, the orders
+        // SELECT RLS policy may block PostgREST from returning the new row.
+        const { error } = await supabaseClient
+            .from('orders')
+            .insert([orderData]);
+
         if (error) throw error;
-        if (!data) throw new Error('Order insert returned no data');
+
+        // Values needed below are already available in the submitted payload.
+        const data = orderData;
         
         console.log('✅ Order placed:', data.order_id, 'Total:', data.total, data.currency);
         
