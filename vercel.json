@@ -93,11 +93,11 @@
     },
     {
       "source": "/product/:productId",
-      "destination": "/product.html?id=:productId"
+      "destination": "/product?id=:productId"
     },
     {
       "source": "/order-track/:orderId",
-      "destination": "/order-track.html?track=:orderId"
+      "destination": "/order-track?track=:orderId"
     },
     {
       "source": "/track/:orderId",
