@@ -717,6 +717,7 @@ function applyCategoryFilter(categoryId, updateURL) {
     });
     
     console.log(`📂 Filtered "${category.name}": ${filtered.length} products`);
+    document.body.classList.add('category-filter-active');
     
     const allSection = document.getElementById('allSection');
     const grid = document.getElementById('allProductsGrid');
@@ -774,6 +775,7 @@ function applyCategoryFilter(categoryId, updateURL) {
 // CLEAR CATEGORY FILTER
 // ============================================================
 function clearCategoryFilter(updateURL = true) {
+    document.body.classList.remove('category-filter-active');
     const allSection = document.getElementById('allSection');
     const sectionTitle = allSection?.querySelector('.section-title');
     if (sectionTitle) {

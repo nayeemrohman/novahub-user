@@ -65,7 +65,7 @@
             
             <div class="checkout-card">
                 <h2 class="checkout-card-title">
-                    <i class="fas fa-shopping-bag"></i> Order Items
+                    <i class="fas fa-shopping-bag"></i> আপনার অর্ডার
                 </h2>
                 <div id="checkoutItemsList">
                     <div class="checkout-item-skeleton">
@@ -80,110 +80,38 @@
             
             <div class="checkout-card">
                 <h2 class="checkout-card-title">
-                    <i class="fas fa-map-marker-alt"></i> Shipping Information
+                    <i class="fas fa-map-marker-alt"></i> আপনার তথ্য
                 </h2>
                 
                 <form id="checkoutForm" onsubmit="event.preventDefault(); placeOrder(event)" autocomplete="off">
                     
                     <div class="form-row">
                         <div class="form-field">
-                            <label for="fullName">Full Name *</label>
+                            <label for="fullName">আপনার নাম *</label>
                             <input type="text" id="fullName" placeholder="আপনার সম্পূর্ণ নাম" required autocomplete="name">
                             <small class="field-error" id="fullNameError"></small>
                         </div>
                         
                         <div class="form-field">
-                            <label for="phone">Phone Number *</label>
+                            <label for="phone">মোবাইল নম্বর *</label>
                             <input type="tel" id="phone" placeholder="01XXXXXXXXX" required autocomplete="tel" maxlength="11">
                             <small class="field-error" id="phoneError"></small>
                         </div>
                     </div>
                     
-                    <div class="form-field">
-                        <label for="email">Email (Optional)</label>
-                        <input type="email" id="email" placeholder="আপনার ইমেইল এড্রেস (অপশনাল)" autocomplete="email">
+                    <div class="form-field" id="checkoutEmailField" hidden>
+                        <label for="email">Email Address (Optional)</label>
+                        <input type="email" id="email" placeholder="আপনার ইমেইল এড্রেস (ঐচ্ছিক)" autocomplete="email">
                     </div>
                     
                     <div class="form-field">
-                        <label for="divisionSearch">Division *</label>
-                        <div class="searchable-dropdown" id="divisionDropdown">
-                            <div class="dropdown-trigger" onclick="toggleDropdown('divisionDropdown')">
-                                <i class="fas fa-map-marker-alt dropdown-icon"></i>
-                                <input type="text" 
-                                       id="divisionSearch" 
-                                       class="dropdown-search-input" 
-                                       placeholder="বিভাগ খুঁজুন বা সিলেক্ট করুন..." 
-                                       autocomplete="off"
-                                       readonly>
-                                <i class="fas fa-chevron-down dropdown-arrow"></i>
-                            </div>
-                            <div class="dropdown-menu" id="divisionMenu">
-                                <div class="dropdown-list" id="divisionList"></div>
-                            </div>
-                        </div>
-                        <input type="hidden" id="division" required>
-                        <small class="field-error" id="divisionError"></small>
+                        <label for="fullAddress">সম্পূর্ণ ঠিকানা *</label>
+                        <textarea id="fullAddress" rows="3" placeholder="বাড়ি, রোড, এলাকা ও নিকটস্থ পরিচিত স্থান লিখুন" required autocomplete="street-address"></textarea>
+                        <small class="field-error" id="fullAddressError"></small>
                     </div>
-                    
-                    <div class="form-row">
-                        <div class="form-field">
-                            <label for="districtSearch">District *</label>
-                            <div class="searchable-dropdown" id="districtDropdown">
-                                <div class="dropdown-trigger" onclick="toggleDropdown('districtDropdown')">
-                                    <i class="fas fa-city dropdown-icon"></i>
-                                    <input type="text" 
-                                           id="districtSearch" 
-                                           class="dropdown-search-input" 
-                                           placeholder="জেলা খুঁজুন..." 
-                                           autocomplete="off"
-                                           readonly
-                                           disabled>
-                                    <i class="fas fa-chevron-down dropdown-arrow"></i>
-                                </div>
-                                <div class="dropdown-menu" id="districtMenu">
-                                    <div class="dropdown-list" id="districtList"></div>
-                                </div>
-                            </div>
-                            <input type="hidden" id="district" required>
-                            <small class="field-error" id="districtError"></small>
-                        </div>
-                        
-                        <div class="form-field">
-                            <label for="upazilaSearch">Thana / Upazila</label>
-                            <div class="searchable-dropdown" id="upazilaDropdown">
-                                <div class="dropdown-trigger" onclick="toggleDropdown('upazilaDropdown')">
-                                    <i class="fas fa-building dropdown-icon"></i>
-                                    <input type="text" 
-                                           id="upazilaSearch" 
-                                           class="dropdown-search-input" 
-                                           placeholder="থানা/উপজেলা খুঁজুন..." 
-                                           autocomplete="off"
-                                           readonly
-                                           disabled>
-                                    <i class="fas fa-chevron-down dropdown-arrow"></i>
-                                </div>
-                                <div class="dropdown-menu" id="upazilaMenu">
-                                    <div class="dropdown-list" id="upazilaList"></div>
-                                </div>
-                            </div>
-                            <input type="hidden" id="upazila">
-                            <small class="field-error" id="upazilaError"></small>
-                        </div>
-                    </div>
-                    
-                    <div class="form-field">
-                        <label for="village">Village / Area *</label>
-                        <input type="text" id="village" placeholder="গ্রাম বা এলাকার নাম" required>
-                        <small class="field-error" id="villageError"></small>
-                    </div>
-                    
-                    <div class="form-field">
-                        <label for="fullAddress">Full Address (House / Road)</label>
-                        <textarea id="fullAddress" rows="2" placeholder="বাসা, রোড, ল্যান্ডমার্ক" autocomplete="street-address"></textarea>
-                    </div>
-                    
+
                     <div class="delivery-section">
-                        <label>Delivery Area *</label>
+                        <label>ডেলিভারি এরিয়া *</label>
                         <div class="delivery-options">
                             
                             <label class="delivery-option" id="deliveryInsideLabel">
@@ -192,7 +120,7 @@
                                     <i class="fas fa-check"></i>
                                 </span>
                                 <span class="delivery-text">
-                                    <strong>Inside Dhaka</strong>
+                                    <strong>ঢাকার ভিতরে</strong>
                                     <small id="insideChargeText">৳60</small>
                                 </span>
                             </label>
@@ -203,7 +131,7 @@
                                     <i class="fas fa-check"></i>
                                 </span>
                                 <span class="delivery-text">
-                                    <strong>Outside Dhaka</strong>
+                                    <strong>ঢাকার বাইরে</strong>
                                     <small id="outsideChargeText">৳120</small>
                                 </span>
                             </label>
@@ -213,7 +141,7 @@
                     </div>
                     
                     <div class="form-field">
-                        <label for="customerNote">Order Notes (Optional)</label>
+                        <label for="customerNote">অর্ডার নোট (ঐচ্ছিক)</label>
                         <textarea id="customerNote" rows="2" placeholder="কোনো বিশেষ নির্দেশনা থাকলে লিখুন"></textarea>
                     </div>
                     
@@ -222,27 +150,27 @@
             
             <div class="checkout-card summary-card">
                 <h2 class="checkout-card-title">
-                    <i class="fas fa-receipt"></i> Order Summary
+                    <i class="fas fa-receipt"></i> অর্ডার সামারি
                 </h2>
                 
                 <div class="summary-rows">
                     <div class="summary-row">
-                        <span>Subtotal</span>
+                        <span>পণ্যের মূল্য</span>
                         <span id="summarySubtotal">৳0</span>
                     </div>
                     <div class="summary-row">
-                        <span>Delivery Charge</span>
+                        <span>ডেলিভারি চার্জ</span>
                         <span id="summaryDelivery">৳0</span>
                     </div>
                     <div class="summary-row total-row">
-                        <span>Total</span>
+                        <span>সর্বমোট</span>
                         <span id="summaryTotal">৳0</span>
                     </div>
                 </div>
                 
                 <button type="button" class="place-order-btn" id="placeOrderBtn" onclick="placeOrder(event)">
                     <i class="fas fa-check-circle"></i>
-                    <span>Confirm Order</span>
+                    <span>অর্ডার নিশ্চিত করুন</span>
                     <i class="fas fa-spinner fa-spin" style="display:none;"></i>
                 </button>
                 

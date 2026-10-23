@@ -30,6 +30,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.log('🚀 Checkout initializing...');
     
     await loadSettings();
+    const emailWrap = document.getElementById('checkoutEmailField');
+    const emailInput = document.getElementById('email');
+    const emailEnabled = window.settings?.checkoutEmailEnabled === true;
+    if (emailWrap) emailWrap.hidden = !emailEnabled;
+    if (emailInput) { emailInput.required = false; if (!emailEnabled) emailInput.value = ''; }
     await updateAuthUI();
     
     const params = new URLSearchParams(window.location.search);
@@ -39,7 +44,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderCheckoutItems();
     updateSummary();
     
-    setupSearchableDropdowns();
     setupDeliveryCharge();
     setupFormValidation();
     setupOutsideClickListener();
@@ -74,7 +78,8 @@ async function loadSettings() {
                 whatsappNumber: data.whatsapp_number || '01947939982',
                 insideDhakaCharge: data.inside_dhaka_charge || 60,
                 outsideDhakaCharge: data.outside_dhaka_charge || 120,
-                webhookUrl: data.webhook_url || ''
+                webhookUrl: data.webhook_url || '',
+                checkoutEmailEnabled: data.checkout_email_enabled === true
             };
         }
     } catch (error) {
@@ -342,180 +347,72 @@ function clearDeliveryError() {
 async function prefillUserInfo() {
     const user = await getCurrentUser();
     if (!user) return;
-    
     const profile = await getUserProfile(user.id);
     if (!profile) return;
-    
     const googleData = user.user_metadata || {};
-    
     const displayName = profile.full_name || googleData.full_name || googleData.name || null;
-    if (displayName) {
-        const el = document.getElementById('fullName');
-        if (el) el.value = displayName;
+    const nameEl = document.getElementById('fullName');
+    if (displayName && nameEl) nameEl.value = displayName;
+    const phoneEl = document.getElementById('phone');
+    if (profile.phone && phoneEl) phoneEl.value = profile.phone;
+    if (user.email && window.settings?.checkoutEmailEnabled === true) {
+        const emailEl = document.getElementById('email');
+        if (emailEl) emailEl.value = user.email;
     }
-    
-    if (profile.phone) {
-        const el = document.getElementById('phone');
-        if (el) el.value = profile.phone;
-    }
-    
-    if (user.email) {
-        const el = document.getElementById('email');
-        if (el) el.value = user.email;
-    }
-    
-    if (profile.village) {
-        const el = document.getElementById('village');
-        if (el) el.value = profile.village;
-    }
-    if (profile.full_address) {
-        const el = document.getElementById('fullAddress');
-        if (el) el.value = profile.full_address;
-    }
-    
-    if (profile.division && LOCATION_DATA.bangladesh.levels[profile.division]) {
-        selectedDivision = profile.division;
-        document.getElementById('division').value = profile.division;
-        document.getElementById('divisionSearch').value = profile.division;
-        document.getElementById('divisionSearch').readOnly = true;
-        
-        const districts = Object.keys(LOCATION_DATA.bangladesh.levels[profile.division] || {});
-        renderDropdownList('districtList', districts, 'district');
-        document.getElementById('districtSearch').disabled = false;
-        
-        if (profile.district) {
-            selectedDistrict = profile.district;
-            document.getElementById('district').value = profile.district;
-            document.getElementById('districtSearch').value = profile.district;
-            document.getElementById('districtSearch').readOnly = true;
-            
-            const upazilas = LOCATION_DATA.bangladesh.levels[profile.division]?.[profile.district] || [];
-            renderDropdownList('upazilaList', upazilas, 'upazila');
-            document.getElementById('upazilaSearch').disabled = false;
-            
-            if (profile.upazila) {
-                selectedUpazila = profile.upazila;
-                document.getElementById('upazila').value = profile.upazila;
-                document.getElementById('upazilaSearch').value = profile.upazila;
-                document.getElementById('upazilaSearch').readOnly = true;
-            }
-            
-            autoSelectDeliveryArea(profile.district);
-        }
-    }
+    const addressEl = document.getElementById('fullAddress');
+    if (profile.full_address && addressEl) addressEl.value = profile.full_address;
 }
 
-// ============================================================
-// BUILD CHECKOUT ITEMS
-// ============================================================
-async function buildCheckoutItems() {
-    checkoutItems = [];
-    
-    if (checkoutMode === 'direct') {
-        try {
-            const stored = localStorage.getItem('novahub_direct_checkout');
-            if (!stored) {
-                showToast('No product found', 'error');
-                setTimeout(() => window.location.href = 'index.html', 1500);
-                return;
-            }
-            const directProductData = JSON.parse(stored);
-            
-            const { data: product } = await supabaseClient
-                .from('products').select('*')
-                .eq('id', directProductData.productId).single();
-            
-            if (product) {
-                checkoutItems = [{
-                    productId: product.id,
-                    title: product.title,
-                    price: safeParseNumber(product.price),
-                    imageURL: product.image_url,
-                    quantity: directProductData.quantity || 1,
-                    selectedVariant: directProductData.selectedVariant || null
-                }];
-            }
-        } catch (error) {
-            console.error('Direct checkout error:', error);
-        }
-    } else {
-        const cart = CartModule.getCart();
-        const selectedKeys = CartModule.getSelected();
-        
-        if (cart.length === 0 || selectedKeys.length === 0) {
-            showToast('No items selected for checkout', 'warning');
-            setTimeout(() => window.location.href = 'index.html', 1500);
-            return;
-        }
-        
-        const selectedItems = cart.filter(item => {
-            const key = generateItemKey(item.productId, item.selectedVariant);
-            return selectedKeys.includes(key);
-        });
-        
-        const productIds = selectedItems.map(i => i.productId);
-        if (productIds.length === 0) return;
-        
-        const { data: products } = await supabaseClient
-            .from('products').select('*').in('id', productIds);
-        
-        const productMap = {};
-        (products || []).forEach(p => { productMap[p.id] = p; });
-        
-        for (const item of selectedItems) {
-            const product = productMap[item.productId];
-            if (product) {
-                checkoutItems.push({
-                    productId: product.id,
-                    title: product.title,
-                    price: safeParseNumber(product.price),
-                    imageURL: product.image_url,
-                    quantity: item.quantity || 1,
-                    selectedVariant: item.selectedVariant || null
-                });
-            }
-        }
-    }
-}
-
-// ============================================================
-// RENDER CHECKOUT ITEMS
-// ============================================================
 function renderCheckoutItems() {
     const container = document.getElementById('checkoutItemsList');
     if (!container) return;
-    
     if (checkoutItems.length === 0) {
-        container.innerHTML = '<div style="text-align:center;padding:30px 20px;color:#888;"><i class="fas fa-shopping-bag" style="font-size:36px;opacity:0.3;display:block;margin-bottom:12px;"></i><p>No items found</p></div>';
+        container.innerHTML = '<div class="checkout-empty">আপনার অর্ডারে কোনো পণ্য নেই</div>';
         return;
     }
-    
-    container.innerHTML = checkoutItems.map(item => {
-        let variantHTML = '';
-        if (item.selectedVariant && Object.keys(item.selectedVariant).length > 0) {
-            variantHTML = '<div class="checkout-item-variant">' +
-                Object.entries(item.selectedVariant).map(([k, v]) => '<span>' + escapeHtml(k) + ': ' + escapeHtml(v) + '</span>').join('') +
-                '</div>';
-        }
-        
-        return '<div class="checkout-item">' +
-            '<img src="' + escapeHtml(item.imageURL || 'https://via.placeholder.com/64') + '" alt="' + escapeHtml(item.title) + '" onerror="this.src=\'https://via.placeholder.com/64\'">' +
+    container.innerHTML = checkoutItems.map((item, index) => {
+        const variants = item.selectedVariant && typeof item.selectedVariant === 'object'
+            ? Object.entries(item.selectedVariant) : [];
+        const variantHTML = variants.map(([key, value]) => {
+            const isColour = /colou?r/i.test(key);
+            const label = isColour ? 'Colour' : key.replace(/ Type$/i, '');
+            return '<div class="checkout-item-variant">' + escapeHtml(label) + ' (' + escapeHtml(value) + ')</div>';
+        }).join('');
+        return '<article class="checkout-item" data-item-index="' + index + '">' +
+            '<img class="checkout-item-image" src="' + escapeHtml(item.imageURL || '') + '" alt="' + escapeHtml(item.title) + '" loading="lazy" onerror="this.style.visibility=\'hidden\'">' +
             '<div class="checkout-item-info">' +
                 '<div class="checkout-item-title">' + escapeHtml(item.title) + '</div>' +
                 variantHTML +
-                '<div class="checkout-item-meta">' +
-                    '<span><strong>Qty:</strong> ' + item.quantity + '</span>' +
-                    '<span><strong>Unit:</strong> ' + formatPrice(item.price) + '</span>' +
+                '<div class="checkout-quantity" aria-label="পণ্যের পরিমাণ">' +
+                    '<button type="button" class="qty-btn" aria-label="পরিমাণ কমান" onclick="changeCheckoutQuantity(' + index + ',-1)" ' + (item.quantity <= 1 ? 'disabled' : '') + '>−</button>' +
+                    '<span class="qty-value">' + item.quantity + '</span>' +
+                    '<button type="button" class="qty-btn" aria-label="পরিমাণ বাড়ান" onclick="changeCheckoutQuantity(' + index + ',1)">+</button>' +
                 '</div>' +
+                '<div class="checkout-unit-price">' + formatPrice(item.price) + '</div>' +
             '</div>' +
-            '<div class="checkout-item-price">' + formatPrice(item.price * item.quantity) + '</div>' +
-        '</div>';
+        '</article>';
     }).join('');
 }
+function changeCheckoutQuantity(index, delta) {
+    const item = checkoutItems[index];
+    if (!item) return;
+    const next = Math.max(1, Math.min(99, Number(item.quantity || 1) + delta));
+    if (next === item.quantity) return;
+    item.quantity = next;
+    if (checkoutMode === 'cart' && window.CartModule) {
+        window.CartModule.updateQuantity(item.productId, delta, item.selectedVariant);
+    } else if (checkoutMode === 'direct') {
+        try {
+            const direct = JSON.parse(localStorage.getItem('novahub_direct_checkout') || '{}');
+            direct.quantity = next;
+            localStorage.setItem('novahub_direct_checkout', JSON.stringify(direct));
+        } catch (e) { console.warn('Could not persist direct checkout quantity', e); }
+    }
+    renderCheckoutItems();
+    updateSummary();
+}
+window.changeCheckoutQuantity = changeCheckoutQuantity;
 
-// ============================================================
-// UPDATE SUMMARY
-// ============================================================
 function updateSummary() {
     const subtotal = checkoutItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     
@@ -570,24 +467,12 @@ function validateForm() {
         valid = false;
     }
     
-    if (!selectedDivision) {
-        const errEl = document.getElementById('divisionError');
-        if (errEl) { errEl.textContent = 'Please select division'; errEl.classList.add('show'); }
+    const address = document.getElementById('fullAddress');
+    if (!address || address.value.trim().length < 8) {
+        if (address) showFieldError(address, 'fullAddressError', 'আপনার সম্পূর্ণ ঠিকানা লিখুন');
         valid = false;
     }
-    
-    if (!selectedDistrict) {
-        const errEl = document.getElementById('districtError');
-        if (errEl) { errEl.textContent = 'Please select district'; errEl.classList.add('show'); }
-        valid = false;
-    }
-    
-    const village = document.getElementById('village');
-    if (!village.value.trim()) {
-        showFieldError(village, 'villageError', 'Please enter village/area');
-        valid = false;
-    }
-    
+
     const insideCheckbox = document.getElementById('deliveryInsideCheckbox');
     const outsideCheckbox = document.getElementById('deliveryOutsideCheckbox');
     if (!insideCheckbox?.checked && !outsideCheckbox?.checked) {
@@ -713,12 +598,14 @@ async function placeOrder(event) {
             user_id: user ? user.id : null,
             full_name: document.getElementById('fullName').value.trim(),
             phone: document.getElementById('phone').value.trim(),
-            email: document.getElementById('email').value.trim() || null,
-            division: selectedDivision,
-            district: selectedDistrict,
-            upazila: selectedUpazila || null,
-            village: document.getElementById('village').value.trim(),
-            full_address: document.getElementById('fullAddress').value.trim() || null,
+            email: window.settings?.checkoutEmailEnabled === true
+                ? (document.getElementById('email').value.trim() || null)
+                : null,
+            division: null,
+            district: null,
+            upazila: null,
+            village: null,
+            full_address: document.getElementById('fullAddress').value.trim(),
             delivery_area: deliveryArea,
             delivery_area_text: deliveryArea === 'inside' ? 'Inside Dhaka' : 'Outside Dhaka',
             customer_note: document.getElementById('customerNote').value.trim() || null,

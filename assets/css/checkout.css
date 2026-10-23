@@ -1077,3 +1077,32 @@
     
     .dropdown-menu { max-height: 220px; }
 }
+
+/* NovaHub checkout usability update */
+[hidden] { display: none !important; }
+.checkout-item { display:grid; grid-template-columns:72px minmax(0,1fr); gap:12px; align-items:start; padding:14px 0; border-bottom:1px solid #ececec; }
+.checkout-item:last-child { border-bottom:0; }
+.checkout-item-image { width:72px; height:72px; object-fit:contain; background:#f7f7f7; border-radius:10px; padding:5px; }
+.checkout-item-info { min-width:0; }
+.checkout-item-title { font-weight:700; line-height:1.35; overflow-wrap:anywhere; }
+.checkout-item-variant { color:#555; font-size:12px; margin-top:4px; }
+.checkout-quantity { display:flex; align-items:center; gap:12px; margin-top:10px; }
+.checkout-quantity .qty-btn { width:34px; height:34px; border:1px solid #dedede; border-radius:9px; background:#fff; color:#111; font-size:20px; font-weight:600; cursor:pointer; }
+.checkout-quantity .qty-btn:disabled { opacity:.4; cursor:not-allowed; }
+.checkout-quantity .qty-value { min-width:16px; text-align:center; font-weight:700; }
+.checkout-unit-price { margin-top:6px; font-size:15px; font-weight:800; color:#E12736; }
+.checkout-empty { text-align:center; padding:26px 12px; color:#666; }
+.checkout-container { width:min(100% - 24px, 980px); }
+.checkout-card { min-width:0; }
+.checkout-card input, .checkout-card textarea, .checkout-card select { font-size:16px; }
+#checkoutForm .form-field textarea#fullAddress { min-height:96px; resize:vertical; }
+@media (max-width:600px) {
+  .checkout-container { width:min(100% - 20px, 540px); padding-left:0; padding-right:0; }
+  .checkout-wrapper { gap:12px; }
+  .checkout-card { padding:16px; border-radius:14px; }
+  .checkout-card-title { font-size:16px; }
+  .checkout-item { grid-template-columns:64px minmax(0,1fr); gap:10px; }
+  .checkout-item-image { width:64px; height:64px; }
+  .delivery-options { grid-template-columns:minmax(0,1fr); }
+  #placeOrderBtn { width:100%; min-height:50px; }
+}

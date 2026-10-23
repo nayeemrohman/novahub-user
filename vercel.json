@@ -68,10 +68,6 @@
   ],
   "rewrites": [
     {
-      "source": "/lp/:slug",
-      "destination": "/landing-page.html?slug=:slug"
-    },
-    {
       "source": "/api/meta-capi",
       "destination": "/api/meta-capi.js"
     },
