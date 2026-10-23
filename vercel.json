@@ -3,6 +3,7 @@
   "version": 2,
   "cleanUrls": true,
   "trailingSlash": false,
+
   "headers": [
     {
       "source": "/(.*)",
@@ -66,6 +67,7 @@
       ]
     }
   ],
+
   "rewrites": [
     {
       "source": "/api/meta-capi",
@@ -91,6 +93,7 @@
       "source": "/api/og",
       "destination": "/api/og.js"
     },
+
     {
       "source": "/product/:productId",
       "destination": "/product?id=:productId"
@@ -104,6 +107,7 @@
       "destination": "/order-track.html?track=:orderId"
     }
   ],
+
   "redirects": [
     {
       "source": "/home",
