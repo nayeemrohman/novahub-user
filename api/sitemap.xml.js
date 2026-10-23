@@ -7,7 +7,7 @@
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://oxnfiueqmvggtjtciqbn.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_jYBypv_FEbLfWYDqFEeEkw_IA2WmZMk';
 
-const SITE_URL = 'https://novahubgadgets.com';
+const SITE_URL = 'https://www.novahubgadgets.com';
 
 module.exports = async (req, res) => {
     try {
@@ -52,7 +52,6 @@ function buildSitemapXML(products) {
     
     const staticPages = [
         { loc: SITE_URL + '/', changefreq: 'daily', priority: '1.0', lastmod: today },
-        { loc: SITE_URL + '/product.html', changefreq: 'daily', priority: '0.9', lastmod: today },
         { loc: SITE_URL + '/about.html', changefreq: 'monthly', priority: '0.7', lastmod: today },
         { loc: SITE_URL + '/order-track.html', changefreq: 'weekly', priority: '0.6', lastmod: today },
         { loc: SITE_URL + '/terms.html', changefreq: 'monthly', priority: '0.4', lastmod: today },

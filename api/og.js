@@ -7,7 +7,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL || 'https://oxnfiueqmvggtjtciqbn.s
 const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_jYBypv_FEbLfWYDqFEeEkw_IA2WmZMk';
 
 const SITE_NAME = 'Novahub';
-const SITE_URL = 'https://novahubgadgets.com';
+const SITE_URL = 'https://www.novahubgadgets.com';
 const DEFAULT_IMAGE = SITE_URL + '/assets/images/logo.jpg';
 const DEFAULT_TITLE = 'Novahub – Best Gadget Accessories Shop in Bangladesh';
 const DEFAULT_DESCRIPTION = 'Shop premium gadget accessories at Novahub – Headphones, Gaming Gear, Power Banks & more at best prices.';

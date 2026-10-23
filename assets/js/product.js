@@ -161,15 +161,26 @@ function updateSEO() {
     
     const slugForUrl = product.seo_slug && String(product.seo_slug).trim();
     const canonicalFromDb = product.canonical_url && String(product.canonical_url).trim();
-    const productUrl = canonicalFromDb 
-        || (slugForUrl
-            ? 'https://novahubgadgets.com/product/' + encodeURIComponent(slugForUrl)
-            : 'https://novahubgadgets.com/product.html?id=' + product.id);
+    const generatedProductUrl = slugForUrl
+        ? 'https://www.novahubgadgets.com/product/' + encodeURIComponent(slugForUrl)
+        : 'https://www.novahubgadgets.com/product.html?id=' + encodeURIComponent(product.id);
+    // Keep canonical URLs on the one preferred host; avoid stale DB values pointing to the apex domain.
+    let productUrl = generatedProductUrl;
+    if (canonicalFromDb) {
+        try {
+            const parsedCanonical = new URL(canonicalFromDb);
+            if (parsedCanonical.hostname === 'novahubgadgets.com' || parsedCanonical.hostname === 'www.novahubgadgets.com') {
+                parsedCanonical.protocol = 'https:';
+                parsedCanonical.hostname = 'www.novahubgadgets.com';
+                productUrl = parsedCanonical.href;
+            }
+        } catch (_) { /* Ignore malformed database canonical URL and use generated URL. */ }
+    }
     
     const productImage = 
         (product.og_image && String(product.og_image).trim())
         || productImages[0] 
-        || 'https://novahubgadgets.com/assets/images/logo.jpg';
+        || 'https://www.novahubgadgets.com/assets/images/logo.jpg';
     
     // ============================================================
     // BD-STYLE TITLE: "[Product Name] Price in Bangladesh ৳[price] | Novahub"
@@ -294,7 +305,7 @@ function updateSEO() {
             "seller": {
                 "@type": "Organization",
                 "name": "Novahub",
-                "url": "https://novahubgadgets.com"
+                "url": "https://www.novahubgadgets.com"
             }
         }
     };
@@ -339,7 +350,7 @@ function updateSEO() {
         "@context": "https://schema.org",
         "@type": "BreadcrumbList",
         "itemListElement": [
-            { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://novahubgadgets.com/" },
+            { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://www.novahubgadgets.com/" },
             { "@type": "ListItem", "position": 2, "name": product.title + ' Price in Bangladesh', "item": productUrl }
         ]
     };

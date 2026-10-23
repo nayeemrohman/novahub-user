@@ -1,6 +1,6 @@
 # ============================================================
 # NOVAHUB — robots.txt (v2 — BUG FIXED)
-# Domain: https://novahubgadgets.com
+# Domain: https://www.novahubgadgets.com
 # ============================================================
 # 
 # FIXES in v2:
@@ -274,4 +274,4 @@ Disallow: /
 
 # ==================== SITEMAP ====================
 # Dynamic sitemap served via api/sitemap.xml.js
-Sitemap: https://novahubgadgets.com/sitemap.xml
+Sitemap: https://www.novahubgadgets.com/sitemap.xml

@@ -135,7 +135,7 @@ module.exports = async (req, res) => {
 function buildPayload(body, clientIp, userAgent, requestId) {
     const event_name = body.event_name || 'Purchase';
     const event_id = body.event_id || '';
-    const event_source_url = body.event_source_url || 'https://novahubgadgets.com';
+    const event_source_url = body.event_source_url || 'https://www.novahubgadgets.com';
     const user_data = body.user_data || {};
     const custom_data = body.custom_data || {};
     

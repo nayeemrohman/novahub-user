@@ -93,6 +93,17 @@
     },
     {
       "source": "/product/:productId",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(facebookexternalhit|Facebot|Twitterbot|WhatsApp|TelegramBot|Slackbot|Discordbot|LinkedInBot|Pinterest|Googlebot|bingbot).*"
+        }
+      ],
+      "destination": "/api/og?id=:productId"
+    },
+    {
+      "source": "/product/:productId",
       "destination": "/product.html?id=:productId"
     },
     {
